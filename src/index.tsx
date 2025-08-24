@@ -259,6 +259,286 @@ app.get('/api/admin/stats', async (c) => {
   }
 })
 
+// Cập nhật thông tin ảnh (admin)
+app.put('/api/admin/images/:id', async (c) => {
+  const { env } = c
+  const imageId = c.req.param('id')
+  const { filename, style, original_name, is_active } = await c.req.json()
+  
+  try {
+    const result = await env.DB.prepare(`
+      UPDATE architecture_images 
+      SET filename = ?, style = ?, original_name = ?, is_active = ?
+      WHERE id = ?
+    `).bind(filename, style, original_name, is_active ? 1 : 0, imageId).run()
+
+    if (result.changes === 0) {
+      return c.json({ error: 'Image not found' }, 404)
+    }
+
+    return c.json({ 
+      success: true, 
+      message: 'Image updated successfully' 
+    })
+  } catch (error) {
+    console.error('Error updating image:', error)
+    return c.json({ error: 'Failed to update image' }, 500)
+  }
+})
+
+// Xóa ảnh (admin)
+app.delete('/api/admin/images/:id', async (c) => {
+  const { env } = c
+  const imageId = c.req.param('id')
+  
+  try {
+    // Kiểm tra xem ảnh có đang được sử dụng trong responses không
+    const { results: usageCheck } = await env.DB.prepare(`
+      SELECT COUNT(*) as count FROM user_responses 
+      WHERE chosen_image_id = ? OR image_left_id = ? OR image_right_id = ?
+    `).bind(imageId, imageId, imageId).all()
+
+    if (usageCheck[0]?.count > 0) {
+      // Nếu có responses, chỉ deactivate thay vì xóa
+      await env.DB.prepare(`
+        UPDATE architecture_images SET is_active = 0 WHERE id = ?
+      `).bind(imageId).run()
+      
+      return c.json({ 
+        success: true, 
+        message: 'Image deactivated (has survey responses)',
+        action: 'deactivated'
+      })
+    } else {
+      // Nếu không có responses, có thể xóa hoàn toàn
+      const result = await env.DB.prepare(`
+        DELETE FROM architecture_images WHERE id = ?
+      `).bind(imageId).run()
+
+      if (result.changes === 0) {
+        return c.json({ error: 'Image not found' }, 404)
+      }
+
+      return c.json({ 
+        success: true, 
+        message: 'Image deleted successfully',
+        action: 'deleted'
+      })
+    }
+  } catch (error) {
+    console.error('Error deleting image:', error)
+    return c.json({ error: 'Failed to delete image' }, 500)
+  }
+})
+
+// Toggle trạng thái active của ảnh (admin)
+app.patch('/api/admin/images/:id/toggle', async (c) => {
+  const { env } = c
+  const imageId = c.req.param('id')
+  
+  try {
+    // Lấy trạng thái hiện tại
+    const { results: currentImage } = await env.DB.prepare(`
+      SELECT is_active FROM architecture_images WHERE id = ?
+    `).bind(imageId).all()
+
+    if (currentImage.length === 0) {
+      return c.json({ error: 'Image not found' }, 404)
+    }
+
+    const newStatus = currentImage[0].is_active ? 0 : 1
+    
+    await env.DB.prepare(`
+      UPDATE architecture_images SET is_active = ? WHERE id = ?
+    `).bind(newStatus, imageId).run()
+
+    return c.json({ 
+      success: true, 
+      is_active: newStatus === 1,
+      message: newStatus ? 'Image activated' : 'Image deactivated'
+    })
+  } catch (error) {
+    console.error('Error toggling image status:', error)
+    return c.json({ error: 'Failed to toggle image status' }, 500)
+  }
+})
+
+// Tìm kiếm và lọc ảnh (admin) - MUST be before /:id route
+app.get('/api/admin/images/search', async (c) => {
+  const { env } = c
+  const style = c.req.query('style')
+  const status = c.req.query('status') // 'active', 'inactive', 'all'
+  const search = c.req.query('search') // search in filename
+  const limit = parseInt(c.req.query('limit') || '50')
+  const offset = parseInt(c.req.query('offset') || '0')
+  
+  try {
+    let whereConditions = []
+    let params: any[] = []
+
+    if (style && style !== 'all') {  
+      whereConditions.push('style = ?')
+      params.push(style)
+    }
+
+    if (status === 'active') {
+      whereConditions.push('is_active = 1')
+    } else if (status === 'inactive') {
+      whereConditions.push('is_active = 0')
+    }
+
+    if (search) {
+      whereConditions.push('(filename LIKE ? OR original_name LIKE ?)')
+      params.push(`%${search}%`, `%${search}%`)
+    }
+
+    const whereClause = whereConditions.length > 0 ? 'WHERE ' + whereConditions.join(' AND ') : ''
+    
+    const { results: images } = await env.DB.prepare(`
+      SELECT * FROM architecture_images 
+      ${whereClause}
+      ORDER BY uploaded_at DESC 
+      LIMIT ? OFFSET ?
+    `).bind(...params, limit, offset).all()
+
+    const { results: totalCount } = await env.DB.prepare(`
+      SELECT COUNT(*) as count FROM architecture_images ${whereClause}
+    `).bind(...params).all()
+
+    return c.json({
+      images,
+      total: totalCount[0]?.count || 0,
+      limit,
+      offset,
+      hasMore: (totalCount[0]?.count || 0) > offset + limit
+    })
+  } catch (error) {
+    console.error('Error searching images:', error)
+    return c.json({ error: 'Failed to search images' }, 500)
+  }
+})
+
+// Lấy thông tin chi tiết một ảnh (admin)
+app.get('/api/admin/images/:id', async (c) => {
+  const { env } = c
+  const imageId = c.req.param('id')
+  
+  try {
+    const { results: image } = await env.DB.prepare(`
+      SELECT * FROM architecture_images WHERE id = ?
+    `).bind(imageId).all()
+
+    if (image.length === 0) {
+      return c.json({ error: 'Image not found' }, 404)
+    }
+
+    // Lấy thống kê sử dụng
+    const { results: usageStats } = await env.DB.prepare(`
+      SELECT 
+        COUNT(*) as total_appearances,
+        SUM(CASE WHEN chosen_image_id = ? THEN 1 ELSE 0 END) as times_chosen
+      FROM user_responses 
+      WHERE chosen_image_id = ? OR image_left_id = ? OR image_right_id = ?
+    `).bind(imageId, imageId, imageId, imageId).all()
+
+    return c.json({
+      image: image[0],
+      stats: {
+        total_appearances: usageStats[0]?.total_appearances || 0,
+        times_chosen: usageStats[0]?.times_chosen || 0,
+        choice_rate: usageStats[0]?.total_appearances > 0 
+          ? Math.round((usageStats[0]?.times_chosen / usageStats[0]?.total_appearances) * 100) 
+          : 0
+      }
+    })
+  } catch (error) {
+    console.error('Error getting image details:', error)
+    return c.json({ error: 'Failed to get image details' }, 500)
+  }
+})
+
+// Bulk actions cho nhiều ảnh (admin)
+app.post('/api/admin/images/bulk', async (c) => {
+  const { env } = c
+  const { action, imageIds } = await c.req.json()
+  
+  if (!imageIds || !Array.isArray(imageIds) || imageIds.length === 0) {
+    return c.json({ error: 'No images selected' }, 400)
+  }
+
+  const placeholders = imageIds.map(() => '?').join(',')
+  
+  try {
+    let result
+    let message = ''
+
+    switch (action) {
+      case 'activate':
+        result = await env.DB.prepare(`
+          UPDATE architecture_images SET is_active = 1 WHERE id IN (${placeholders})
+        `).bind(...imageIds).run()
+        message = `Activated ${result.changes} images`
+        break
+
+      case 'deactivate':
+        result = await env.DB.prepare(`
+          UPDATE architecture_images SET is_active = 0 WHERE id IN (${placeholders})
+        `).bind(...imageIds).run()
+        message = `Deactivated ${result.changes} images`
+        break
+
+      case 'delete':
+        // Kiểm tra usage trước khi xóa
+        const { results: usageCheck } = await env.DB.prepare(`
+          SELECT DISTINCT chosen_image_id as id FROM user_responses 
+          WHERE chosen_image_id IN (${placeholders})
+          UNION
+          SELECT DISTINCT image_left_id as id FROM user_responses 
+          WHERE image_left_id IN (${placeholders})
+          UNION  
+          SELECT DISTINCT image_right_id as id FROM user_responses 
+          WHERE image_right_id IN (${placeholders})
+        `).bind(...imageIds).all()
+
+        const usedImageIds = usageCheck.map(row => row.id)
+        const unusedImageIds = imageIds.filter(id => !usedImageIds.includes(parseInt(id)))
+        
+        if (usedImageIds.length > 0) {
+          // Deactivate used images
+          await env.DB.prepare(`
+            UPDATE architecture_images SET is_active = 0 
+            WHERE id IN (${usedImageIds.map(() => '?').join(',')})
+          `).bind(...usedImageIds).run()
+        }
+        
+        if (unusedImageIds.length > 0) {
+          // Delete unused images
+          await env.DB.prepare(`
+            DELETE FROM architecture_images 
+            WHERE id IN (${unusedImageIds.map(() => '?').join(',')})
+          `).bind(...unusedImageIds).run()
+        }
+        
+        message = `Deleted ${unusedImageIds.length} images, deactivated ${usedImageIds.length} images (had survey responses)`
+        break
+
+      default:
+        return c.json({ error: 'Invalid action' }, 400)
+    }
+
+    return c.json({ 
+      success: true, 
+      message,
+      affected: result?.changes || imageIds.length
+    })
+  } catch (error) {
+    console.error('Error performing bulk action:', error)
+    return c.json({ error: 'Failed to perform bulk action' }, 500)
+  }
+})
+
+
+
 // Helper function để mô tả phong cách
 function getStyleDescription(style: string): string {
   const descriptions: Record<string, string> = {
@@ -482,14 +762,163 @@ app.get('/admin', (c) => {
             </div>
           </div>
 
-          {/* Image Gallery */}
+          {/* Advanced Image Gallery */}
           <div className="bg-white rounded-xl shadow-sm p-6">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">
-              <i className="fas fa-th-large mr-2 text-indigo-600"></i>
-              Thư Viện Ảnh
-            </h2>
-            <div id="image-gallery" className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold text-gray-800">
+                <i className="fas fa-images mr-2 text-indigo-600"></i>
+                Quản Lý Thư Viện Ảnh
+              </h2>
+              <button id="toggle-gallery-view" className="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded-lg transition-colors">
+                <i className="fas fa-th mr-1"></i>
+                Grid View
+              </button>
+            </div>
+
+            {/* Search and Filter Bar */}
+            <div className="bg-gray-50 rounded-lg p-4 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Tìm kiếm</label>
+                  <input 
+                    type="text" 
+                    id="search-input" 
+                    placeholder="Tên file hoặc ảnh..." 
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Phong cách</label>
+                  <select id="style-filter" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                    <option value="all">Tất cả</option>
+                    <option value="modern">Modern</option>
+                    <option value="classical">Classical</option>
+                    <option value="industrial">Industrial</option>
+                    <option value="traditional">Traditional</option>
+                    <option value="minimalist">Minimalist</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Trạng thái</label>
+                  <select id="status-filter" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                    <option value="all">Tất cả</option>
+                    <option value="active">Đang hoạt động</option>
+                    <option value="inactive">Đã tắt</option>
+                  </select>
+                </div>
+                <div className="flex items-end">
+                  <button id="search-btn" className="w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
+                    <i className="fas fa-search mr-2"></i>
+                    Lọc
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Bulk Actions Bar */}
+            <div id="bulk-actions" className="hidden bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+              <div className="flex items-center justify-between">
+                <span id="selected-count" className="text-sm text-blue-700 font-medium">0 ảnh được chọn</span>
+                <div className="flex space-x-2">
+                  <button id="bulk-activate" className="text-sm bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition-colors">
+                    <i className="fas fa-eye mr-1"></i>
+                    Kích hoạt
+                  </button>
+                  <button id="bulk-deactivate" className="text-sm bg-yellow-600 text-white px-3 py-1 rounded hover:bg-yellow-700 transition-colors">
+                    <i className="fas fa-eye-slash mr-1"></i>
+                    Tắt
+                  </button>
+                  <button id="bulk-delete" className="text-sm bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 transition-colors">
+                    <i className="fas fa-trash mr-1"></i>
+                    Xóa
+                  </button>
+                  <button id="clear-selection" className="text-sm bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600 transition-colors">
+                    Bỏ chọn
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Image Grid */}
+            <div id="image-gallery" className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
               {/* Images will be populated by JavaScript */}
+            </div>
+
+            {/* Load More Button */}
+            <div id="load-more-container" className="text-center mt-6 hidden">
+              <button id="load-more-btn" className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors">
+                <i className="fas fa-plus mr-2"></i>
+                Tải thêm ảnh
+              </button>
+            </div>
+
+            {/* Empty State */}
+            <div id="empty-state" className="hidden text-center py-12">
+              <i className="fas fa-images text-gray-300 text-6xl mb-4"></i>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Không có ảnh nào</h3>
+              <p className="text-gray-500">Upload ảnh đầu tiên để bắt đầu xây dựng bộ sưu tập.</p>
+            </div>
+          </div>
+
+          {/* Image Edit Modal */}
+          <div id="edit-modal" className="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl max-w-md w-full p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-800">Chỉnh sửa ảnh</h3>
+                <button id="close-modal" className="text-gray-400 hover:text-gray-600">
+                  <i className="fas fa-times text-xl"></i>
+                </button>
+              </div>
+              <form id="edit-form">
+                <input type="hidden" id="edit-image-id" />
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Tên file</label>
+                    <input type="text" id="edit-filename" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Phong cách</label>
+                    <select id="edit-style" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                      <option value="modern">Modern</option>
+                      <option value="classical">Classical</option>
+                      <option value="industrial">Industrial</option>
+                      <option value="traditional">Traditional</option>
+                      <option value="minimalist">Minimalist</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Tên gốc</label>
+                    <input type="text" id="edit-original-name" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500" />
+                  </div>
+                  <div className="flex items-center">
+                    <input type="checkbox" id="edit-is-active" className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                    <label className="ml-2 text-sm text-gray-700">Đang hoạt động</label>
+                  </div>
+                </div>
+                <div className="flex justify-end space-x-3 mt-6">
+                  <button type="button" id="cancel-edit" className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
+                    Hủy
+                  </button>
+                  <button type="submit" className="px-4 py-2 bg-indigo-600 text-white hover:bg-indigo-700 rounded-lg transition-colors">
+                    Lưu thay đổi
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          {/* Image Details Modal */}
+          <div id="details-modal" className="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl max-w-lg w-full p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-800">Chi tiết ảnh</h3>
+                <button id="close-details-modal" className="text-gray-400 hover:text-gray-600">
+                  <i className="fas fa-times text-xl"></i>
+                </button>
+              </div>
+              <div id="image-details-content">
+                {/* Details will be populated by JavaScript */}
+              </div>
             </div>
           </div>
         </main>

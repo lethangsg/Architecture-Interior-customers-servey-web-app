@@ -66,7 +66,15 @@
 3. Upload ảnh mới (tên file quyết định phong cách)
    - Ví dụ: `modern_house_01.jpg` → style: "modern"
    - Ví dụ: `classical_building_02.jpg` → style: "classical"
-4. Quản lý thư viện ảnh
+4. **🆕 Quản lý thư viện ảnh nâng cao**:
+   - **Tìm kiếm** ảnh theo tên file hoặc original name
+   - **Lọc** theo phong cách (modern, classical, industrial, etc.)
+   - **Lọc** theo trạng thái (active/inactive)
+   - **Chỉnh sửa** thông tin ảnh (filename, style, status)
+   - **Xem chi tiết** với usage statistics (số lần xuất hiện, được chọn)
+   - **Bulk actions**: Chọn nhiều ảnh để activate/deactivate/delete cùng lúc
+   - **Toggle status**: Bật/tắt ảnh nhanh chóng
+   - **Smart delete**: Tự động deactivate thay vì xóa nếu ảnh có survey responses
 
 ## API Endpoints
 
@@ -78,8 +86,14 @@
 
 ### Admin APIs:
 - `GET /api/admin/stats` - Thống kê tổng quan
-- `GET /api/admin/images` - Danh sách ảnh
+- `GET /api/admin/images` - Danh sách tất cả ảnh
 - `POST /api/admin/upload` - Upload ảnh mới
+- `GET /api/admin/images/search` - **🆕 Tìm kiếm và lọc ảnh**
+- `GET /api/admin/images/:id` - **🆕 Chi tiết ảnh với statistics**
+- `PUT /api/admin/images/:id` - **🆕 Cập nhật thông tin ảnh**
+- `DELETE /api/admin/images/:id` - **🆕 Xóa ảnh (với safety check)**
+- `PATCH /api/admin/images/:id/toggle` - **🆕 Toggle active/inactive**
+- `POST /api/admin/images/bulk` - **🆕 Bulk actions (activate/deactivate/delete)**
 
 ## Deployment Status
 - **Platform**: Cloudflare Pages (Local Development)
@@ -104,6 +118,15 @@
 - ✅ Sample data seeding (WORKING)
 - ✅ Inline JavaScript/CSS để tránh 404 static files
 - ✅ Working APIs cho survey và admin
+- ✅ **Advanced Image Gallery Management**:
+  - ✅ Search và filter ảnh theo style, status, filename
+  - ✅ Edit thông tin ảnh (filename, style, status)
+  - ✅ Toggle active/inactive status
+  - ✅ Delete ảnh (với safety check cho responses)
+  - ✅ Bulk actions (activate, deactivate, delete multiple)
+  - ✅ Image details modal với usage statistics
+  - ✅ Pagination với load more functionality
+  - ✅ Checkbox selection với visual feedback
 
 ### Features Not Yet Implemented ⏳
 - ❌ R2 storage cho ảnh thực (hiện dùng placeholder)
