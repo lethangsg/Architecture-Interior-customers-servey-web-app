@@ -72,38 +72,12 @@ class ArchitectureSurvey {
   }
 
   displayImagePair(leftImage, rightImage) {
-    console.log('🖼️ displayImagePair called:', { leftImage, rightImage })
-    
     const leftImg = document.getElementById('left-image')
     const rightImg = document.getElementById('right-image')
     
-    console.log('🎯 Image elements:', { leftImg, rightImg })
-    
     // Sử dụng API endpoint để lấy ảnh thực tế hoặc SVG fallback
-    const leftSrc = `/api/images/${leftImage.id}`
-    const rightSrc = `/api/images/${rightImage.id}`
-    
-    console.log('🔗 Image sources:', { leftSrc, rightSrc })
-    
-    // Add error handlers
-    leftImg.onerror = () => {
-      console.error('❌ Left image failed to load:', leftSrc)
-    }
-    
-    rightImg.onerror = () => {
-      console.error('❌ Right image failed to load:', rightSrc)
-    }
-    
-    leftImg.onload = () => {
-      console.log('✅ Left image loaded successfully:', leftSrc)
-    }
-    
-    rightImg.onload = () => {
-      console.log('✅ Right image loaded successfully:', rightSrc)
-    }
-    
-    leftImg.src = leftSrc
-    rightImg.src = rightSrc
+    leftImg.src = `/api/images/${leftImage.id}`
+    rightImg.src = `/api/images/${rightImage.id}`
     
     leftImg.alt = `${leftImage.style} architecture`
     rightImg.alt = `${rightImage.style} architecture`

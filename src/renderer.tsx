@@ -39,7 +39,11 @@ export const renderer = jsxRenderer(({ children }) => {
         {children}
         
         {/* Inline JavaScript */}
+        <script src="/static/app.js"></script>
+
         <script dangerouslySetInnerHTML={{__html: `
+          // Inline class commented out - using app.js instead
+          /*
           class ArchitectureSurvey {
             constructor() {
               this.sessionId = null;
@@ -1069,6 +1073,7 @@ export const renderer = jsxRenderer(({ children }) => {
               }, 1000);
             }
           });
+          */
         `}} />
       </body>
     </html>
