@@ -1,0 +1,379 @@
+/* Architecture Survey App - Custom Styles */
+
+/* Mobile-first responsive design */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Mobile touch optimization */
+button, .button {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Image selection areas */
+#left-choice, #right-choice {
+  position: relative;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 250px;
+}
+
+#left-choice:active, #right-choice:active {
+  transform: scale(0.98);
+  opacity: 0.8;
+}
+
+#left-choice img, #right-choice img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: all 0.3s ease;
+}
+
+/* Hover/touch effects */
+#left-choice:hover img, #right-choice:hover img,
+#left-choice:active img, #right-choice:active img {
+  filter: brightness(1.1);
+}
+
+/* Selection feedback */
+.choice-selected {
+  background-color: rgba(99, 102, 241, 0.1);
+  border: 3px solid #6366f1;
+}
+
+.choice-selected::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #6366f1;
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 20px;
+  z-index: 10;
+}
+
+/* Progress bar animation */
+#progress-bar {
+  transition: width 0.5s ease-in-out;
+}
+
+/* Loading animation improvements */
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Card shadows and hover effects */
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Smooth transitions for screen changes */
+.screen-transition {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Image gallery grid improvements */
+#image-gallery img {
+  transition: transform 0.2s ease;
+}
+
+#image-gallery .group:hover img {
+  transform: scale(1.05);
+}
+
+/* Admin upload area */
+#upload-form {
+  transition: border-color 0.2s ease;
+}
+
+#upload-form:hover {
+  border-color: #6366f1;
+}
+
+#upload-form.dragging {
+  border-color: #6366f1;
+  background-color: rgba(99, 102, 241, 0.05);
+}
+
+/* Style chart bars animation */
+.style-bar {
+  transition: width 0.8s ease-out;
+}
+
+/* Mobile specific styles */
+@media (max-width: 640px) {
+  /* Ensure proper touch targets */
+  button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Optimize image sizes for mobile */
+  #left-choice, #right-choice {
+    min-height: 200px;
+  }
+  
+  /* Adjust text sizes */
+  h1 {
+    font-size: 1.25rem;
+  }
+  
+  h2 {
+    font-size: 1.5rem;
+  }
+  
+  /* Optimize admin interface for mobile */
+  .admin-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  #image-gallery {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Tablet styles */
+@media (min-width: 641px) and (max-width: 1024px) {
+  #image-gallery {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Desktop styles */
+@media (min-width: 1025px) {
+  #image-gallery {
+    grid-template-columns: repeat(6, 1fr);
+  }
+  
+  /* Hover effects only on desktop */
+  .card-hover {
+    transition: all 0.2s ease;
+  }
+}
+
+/* High DPI display optimization */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  /* Optimize for retina displays */
+  img {
+    image-rendering: -webkit-optimize-contrast;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  /* Add dark mode styles if needed */
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* Custom scrollbar for webkit browsers */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Focus styles for accessibility */
+button:focus,
+input:focus {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+}
+
+/* Loading state styles */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+/* Success/error message styles */
+.message-toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background-color: #10b981;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  animation: slideInRight 0.3s ease-out;
+}
+
+.message-toast.error {
+  background-color: #ef4444;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Optimized for Vietnamese text */
+.vietnamese-text {
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+/* Survey specific styles */
+.survey-container {
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.image-comparison {
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.choice-button {
+  position: relative;
+  overflow: hidden;
+  border: none;
+  padding: 0;
+  background: none;
+  display: block;
+  width: 100%;
+}
+
+.choice-label {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(0, 0, 0, 0.6);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  z-index: 2;
+}
+
+/* Results screen enhancements */
+.result-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 1rem;
+  padding: 2rem;
+  text-align: center;
+}
+
+.confidence-meter {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  padding: 1rem;
+  margin: 1rem 0;
+}
+
+/* Admin dashboard enhancements */
+.admin-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+
+/* Upload zone styling */
+.upload-zone {
+  border: 2px dashed #d1d5db;
+  border-radius: 12px;
+  padding: 2rem;
+  text-align: center;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.upload-zone:hover,
+.upload-zone.drag-over {
+  border-color: #6366f1;
+  background-color: rgba(99, 102, 241, 0.02);
+}
+
+.upload-zone.uploading {
+  pointer-events: none;
+  opacity: 0.7;
+}
