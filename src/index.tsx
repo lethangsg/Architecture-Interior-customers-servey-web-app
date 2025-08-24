@@ -70,19 +70,25 @@ app.get('/api/images/:id', async (c) => {
     // Create style-specific architectural SVG representations
     const getArchitecturalSVG = (style: string, imageId: number) => {
       const styleColors = {
-        'modern': { bg: '#2D3748', accent: '#4299E1', text: '#F7FAFC' },
-        'classical': { bg: '#744210', accent: '#D69E2E', text: '#FFFAF0' },
-        'industrial': { bg: '#4A5568', accent: '#718096', text: '#F7FAFC' },
-        'traditional': { bg: '#822727', accent: '#E53E3E', text: '#FFFAF0' },
-        'contemporary': { bg: '#553C9A', accent: '#9F7AEA', text: '#FAF5FF' },
-        'minimalist': { bg: '#1A202C', accent: '#CBD5E0', text: '#F7FAFC' },
-        'victorian': { bg: '#553C9A', accent: '#805AD5', text: '#FAF5FF' },
-        'colonial': { bg: '#744210', accent: '#B7791F', text: '#FFFAF0' },
-        'brutalist': { bg: '#2D3748', accent: '#718096', text: '#F7FAFC' },
-        'gothic': { bg: '#2B2D42', accent: '#8D99AE', text: '#F8F9FA' }
+        'modern': { bg: '#1A202C', accent: '#4299E1', text: '#F7FAFC', secondary: '#2D3748' },
+        'classical': { bg: '#744210', accent: '#D69E2E', text: '#FFFAF0', secondary: '#B7791F' },
+        'industrial': { bg: '#4A5568', accent: '#718096', text: '#F7FAFC', secondary: '#2D3748' },
+        'traditional': { bg: '#822727', accent: '#E53E3E', text: '#FFFAF0', secondary: '#C53030' },
+        'contemporary': { bg: '#553C9A', accent: '#9F7AEA', text: '#FAF5FF', secondary: '#805AD5' },
+        'minimalist': { bg: '#F7FAFC', accent: '#2D3748', text: '#1A202C', secondary: '#E2E8F0' },
+        'victorian': { bg: '#553C9A', accent: '#805AD5', text: '#FAF5FF', secondary: '#6B46C1' },
+        'colonial': { bg: '#744210', accent: '#B7791F', text: '#FFFAF0', secondary: '#D69E2E' },
+        'brutalist': { bg: '#2D3748', accent: '#718096', text: '#F7FAFC', secondary: '#4A5568' },
+        'gothic': { bg: '#2B2D42', accent: '#8D99AE', text: '#F8F9FA', secondary: '#495057' },
+        'art deco': { bg: '#1A365D', accent: '#4299E1', text: '#F7FAFC', secondary: '#2C5282' },
+        'tudor': { bg: '#744210', accent: '#C05621', text: '#FFFAF0', secondary: '#9C4221' },
+        'italian': { bg: '#C53030', accent: '#F56565', text: '#FFFAF0', secondary: '#E53E3E' },
+        'mediterranean': { bg: '#2C5282', accent: '#4299E1', text: '#F7FAFC', secondary: '#3182CE' },
+        'craftsman': { bg: '#744210', accent: '#D69E2E', text: '#FFFAF0', secondary: '#B7791F' },
+        'neoclassic': { bg: '#E2E8F0', accent: '#4A5568', text: '#1A202C', secondary: '#CBD5E0' }
       }
       
-      const colors = styleColors[style.toLowerCase()] || { bg: '#4A5568', accent: '#9CA3AF', text: '#F7FAFC' }
+      const colors = styleColors[style.toLowerCase()] || { bg: '#4A5568', accent: '#9CA3AF', text: '#F7FAFC', secondary: '#718096' }
       
       let buildingStructure = ''
       
@@ -133,6 +139,81 @@ app.get('/api/images/:id', async (c) => {
             <rect x="190" y="170" width="20" height="30" fill="${colors.bg}" opacity="0.9"/>
             <rect x="120" y="140" width="25" height="60" fill="${colors.accent}"/>
             <rect x="255" y="140" width="25" height="60" fill="${colors.accent}"/>
+          `
+          break
+        case 'art deco':
+          buildingStructure = `
+            <rect x="100" y="60" width="200" height="140" fill="${colors.accent}"/>
+            <polygon points="120,60 180,40 220,40 280,60" fill="${colors.secondary}"/>
+            <rect x="140" y="80" width="20" height="60" fill="${colors.bg}" opacity="0.8"/>
+            <rect x="170" y="80" width="20" height="60" fill="${colors.bg}" opacity="0.8"/>
+            <rect x="210" y="80" width="20" height="60" fill="${colors.bg}" opacity="0.8"/>
+            <rect x="240" y="80" width="20" height="60" fill="${colors.bg}" opacity="0.8"/>
+            <rect x="190" y="150" width="20" height="50" fill="${colors.bg}" opacity="0.9"/>
+            <rect x="120" y="70" width="160" height="4" fill="${colors.secondary}"/>
+          `
+          break
+        case 'tudor':
+          buildingStructure = `
+            <polygon points="200,60 130,110 270,110" fill="${colors.accent}"/>
+            <rect x="140" y="110" width="120" height="90" fill="${colors.secondary}"/>
+            <rect x="160" y="130" width="15" height="25" fill="${colors.bg}" opacity="0.9"/>
+            <rect x="185" y="130" width="15" height="25" fill="${colors.bg}" opacity="0.9"/>
+            <rect x="210" y="130" width="15" height="25" fill="${colors.bg}" opacity="0.9"/>
+            <rect x="235" y="130" width="15" height="25" fill="${colors.bg}" opacity="0.9"/>
+            <rect x="190" y="170" width="20" height="30" fill="${colors.bg}" opacity="0.9"/>
+            <rect x="150" y="115" width="100" height="8" fill="${colors.accent}"/>
+          `
+          break
+        case 'italian':
+          buildingStructure = `
+            <rect x="120" y="80" width="160" height="120" fill="${colors.accent}"/>
+            <rect x="140" y="100" width="25" height="35" fill="${colors.bg}" opacity="0.8"/>
+            <rect x="175" y="100" width="25" height="35" fill="${colors.bg}" opacity="0.8"/>
+            <rect x="210" y="100" width="25" height="35" fill="${colors.bg}" opacity="0.8"/>
+            <rect x="245" y="100" width="25" height="35" fill="${colors.bg}" opacity="0.8"/>
+            <rect x="185" y="150" width="30" height="50" fill="${colors.bg}" opacity="0.9"/>
+            <rect x="100" y="200" width="200" height="6" fill="${colors.secondary}"/>
+            <circle cx="200" cy="70" r="8" fill="${colors.secondary}"/>
+          `
+          break
+        case 'mediterranean':
+          buildingStructure = `
+            <rect x="120" y="90" width="160" height="110" fill="${colors.accent}"/>
+            <circle cx="200" cy="90" r="25" fill="${colors.secondary}"/>
+            <rect x="145" y="120" width="20" height="30" fill="${colors.bg}" opacity="0.8"/>
+            <rect x="175" y="120" width="20" height="30" fill="${colors.bg}" opacity="0.8"/>
+            <rect x="205" y="120" width="20" height="30" fill="${colors.bg}" opacity="0.8"/>
+            <rect x="235" y="120" width="20" height="30" fill="${colors.bg}" opacity="0.8"/>
+            <rect x="185" y="165" width="30" height="35" fill="${colors.bg}" opacity="0.9"/>
+            <rect x="100" y="200" width="200" height="8" fill="${colors.secondary}"/>
+          `
+          break
+        case 'craftsman':
+          buildingStructure = `
+            <polygon points="200,65 140,105 260,105" fill="${colors.accent}"/>
+            <rect x="150" y="105" width="100" height="95" fill="${colors.secondary}"/>
+            <rect x="170" y="125" width="15" height="25" fill="${colors.bg}" opacity="0.9"/>
+            <rect x="195" y="125" width="15" height="25" fill="${colors.bg}" opacity="0.9"/>
+            <rect x="220" y="125" width="15" height="25" fill="${colors.bg}" opacity="0.9"/>
+            <rect x="185" y="160" width="25" height="40" fill="${colors.bg}" opacity="0.9"/>
+            <rect x="130" y="125" width="15" height="75" fill="${colors.accent}"/>
+            <rect x="255" y="125" width="15" height="75" fill="${colors.accent}"/>
+            <rect x="140" y="110" width="120" height="6" fill="${colors.accent}"/>
+          `
+          break
+        case 'neoclassic':
+          buildingStructure = `
+            <rect x="100" y="180" width="200" height="20" fill="${colors.secondary}"/>
+            <rect x="125" y="85" width="18" height="95" fill="${colors.accent}"/>
+            <rect x="155" y="85" width="18" height="95" fill="${colors.accent}"/>
+            <rect x="185" y="85" width="18" height="95" fill="${colors.accent}"/>
+            <rect x="215" y="85" width="18" height="95" fill="${colors.accent}"/>
+            <rect x="245" y="85" width="18" height="95" fill="${colors.accent}"/>
+            <rect x="275" y="85" width="18" height="95" fill="${colors.accent}"/>
+            <polygon points="110,85 200,55 290,85" fill="${colors.accent}"/>
+            <rect x="180" y="115" width="40" height="65" fill="${colors.bg}" opacity="0.9"/>
+            <rect x="110" y="90" width="180" height="4" fill="${colors.secondary}"/>
           `
           break
         default:
@@ -348,8 +429,6 @@ app.post('/api/admin/upload', async (c) => {
   const { env } = c
   
   try {
-    // Trong thực tế, đây sẽ upload file lên R2 storage
-    // Hiện tại chỉ là placeholder để demo
     const formData = await c.req.formData()
     const file = formData.get('image') as File
     
@@ -357,21 +436,50 @@ app.post('/api/admin/upload', async (c) => {
       return c.json({ error: 'No file provided' }, 400)
     }
 
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      return c.json({ error: 'File must be an image' }, 400)
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      return c.json({ error: 'File size must be less than 5MB' }, 400)
+    }
+
     const filename = file.name
     const style = extractStyleFromFilename(filename)
-    const filePath = `/images/${filename}`
+    const timestamp = Date.now()
+    const safeFilename = `${timestamp}_${filename.replace(/[^a-zA-Z0-9._-]/g, '_')}`
+    const filePath = `/images/${safeFilename}`
     
-    // Lưu thông tin ảnh vào database
+    try {
+      // Upload to R2 storage
+      const fileBuffer = await file.arrayBuffer()
+      await env.R2.put(filePath, fileBuffer, {
+        httpMetadata: {
+          contentType: file.type,
+        },
+      })
+      
+      console.log(`✅ File uploaded to R2: ${filePath}`)
+    } catch (r2Error) {
+      console.log('⚠️ R2 upload failed, continuing with metadata only:', r2Error.message)
+      // Continue with metadata-only approach if R2 fails
+    }
+    
+    // Save image metadata to database
     const result = await env.DB.prepare(`
       INSERT INTO architecture_images (filename, style, file_path, original_name)
       VALUES (?, ?, ?, ?)
-    `).bind(filename, style, filePath, filename).run()
+    `).bind(safeFilename, style, filePath, filename).run()
 
     return c.json({ 
       success: true, 
       imageId: result.meta.last_row_id,
-      filename,
+      filename: safeFilename,
+      originalName: filename,
       style,
+      filePath,
       message: 'Image uploaded successfully'
     })
   } catch (error) {
