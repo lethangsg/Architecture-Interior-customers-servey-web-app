@@ -22,7 +22,8 @@ export const renderer = jsxRenderer(({ children }) => {
           button, .button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
           #left-choice, #right-choice { position: relative; cursor: pointer; transition: all 0.2s ease; min-height: 250px; }
           #left-choice:active, #right-choice:active { transform: scale(0.98); opacity: 0.8; }
-          #left-choice img, #right-image img { display: block; width: 100%; height: 100%; object-fit: cover; transition: all 0.3s ease; }
+          #left-choice img, #right-choice img { display: block; width: 100%; height: 100%; object-fit: cover; transition: all 0.3s ease; }
+          #left-image, #right-image { width: 100%; height: 256px; object-fit: cover; display: block; }
           #progress-bar { transition: width 0.5s ease-in-out; }
           .animate-spin { animation: spin 1s linear infinite; }
           @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
@@ -56,7 +57,9 @@ export const renderer = jsxRenderer(({ children }) => {
               document.getElementById('restart-survey')?.addEventListener('click', () => this.restartSurvey());
               
               if (window.location.pathname === '/admin') {
-                this.initAdmin();
+                this.initAdmin().catch(error => {
+                  console.error('Failed to initialize admin:', error);
+                });
               }
             }
 
@@ -107,17 +110,119 @@ export const renderer = jsxRenderer(({ children }) => {
             }
 
             displayImagePair(leftImage, rightImage) {
+              console.log('🖼️ displayImagePair called:', {leftImage, rightImage});
+              const leftChoice = document.getElementById('left-choice');
+              const rightChoice = document.getElementById('right-choice');
               const leftImg = document.getElementById('left-image');
               const rightImg = document.getElementById('right-image');
               
-              leftImg.src = \`https://picsum.photos/400/400?random=\${leftImage.id}\`;
-              rightImg.src = \`https://picsum.photos/400/400?random=\${rightImage.id}\`;
+              console.log('🎯 Elements found:', {leftChoice, rightChoice, leftImg, rightImg});
               
-              leftImg.alt = \`\${leftImage.style} architecture\`;
-              rightImg.alt = \`\${rightImage.style} architecture\`;
+              if (!leftChoice || !rightChoice || !leftImg || !rightImg) {
+                console.error('❌ Required elements not found!');
+                return;
+              }
               
-              leftImg.dataset.imageId = leftImage.id;
-              rightImg.dataset.imageId = rightImage.id;
+              try {
+                console.log('📸 Image paths:', {
+                  leftPath: leftImage.file_path,
+                  rightPath: rightImage.file_path
+                });
+                
+                // Reset container styles to show images properly
+                leftChoice.style.background = '';
+                leftChoice.style.display = '';
+                leftChoice.style.flexDirection = '';
+                leftChoice.style.alignItems = '';
+                leftChoice.style.justifyContent = '';
+                leftChoice.innerHTML = '';
+                
+                rightChoice.style.background = '';
+                rightChoice.style.display = '';
+                rightChoice.style.flexDirection = '';
+                rightChoice.style.alignItems = '';
+                rightChoice.style.justifyContent = '';
+                rightChoice.innerHTML = '';
+                
+                // Re-create the original HTML structure
+                leftChoice.innerHTML = \`
+                  <img id="left-image" src="" alt="Lựa chọn A" class="w-full h-64 object-cover"/>
+                  <div class="absolute inset-0 flex items-end justify-center pb-4">
+                    <span class="bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm font-medium">A</span>
+                  </div>
+                \`;
+                
+                rightChoice.innerHTML = \`
+                  <img id="right-image" src="" alt="Lựa chọn B" class="w-full h-64 object-cover"/>
+                  <div class="absolute inset-0 flex items-end justify-center pb-4">
+                    <span class="bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm font-medium">B</span>
+                  </div>
+                \`;
+                
+                // Get fresh references to the img elements
+                const newLeftImg = document.getElementById('left-image');
+                const newRightImg = document.getElementById('right-image');
+                
+                if (!newLeftImg || !newRightImg) {
+                  console.error('❌ Could not create new img elements');
+                  return;
+                }
+                
+                // Set image sources - try different approaches
+                const tryImageSources = (imgElement, image, side) => {
+                  const possibleSources = [
+                    image.file_path,  // /images/filename.jpg
+                    '/static' + image.file_path,  // /static/images/filename.jpg  
+                    \`/api/images/\${image.id}\`,  // API endpoint
+                    \`data:image/svg+xml;base64,\${btoa('<svg width="400" height="256" xmlns="http://www.w3.org/2000/svg"><rect width="400" height="256" fill="#3B82F6"/><text x="200" y="128" fill="white" text-anchor="middle" font-size="24">' + image.style.toUpperCase() + '</text><text x="200" y="200" fill="white" text-anchor="middle" font-size="16">ID: ' + image.id + '</text></svg>')}\`  // Fallback SVG
+                  ];
+                  
+                  let sourceIndex = 0;
+                  
+                  const tryNextSource = () => {
+                    if (sourceIndex >= possibleSources.length) {
+                      console.error(\`❌ All image sources failed for \${side} image\`);
+                      return;
+                    }
+                    
+                    const source = possibleSources[sourceIndex];
+                    console.log(\`🔄 Trying source \${sourceIndex + 1} for \${side}:\`, source);
+                    
+                    imgElement.onload = () => {
+                      console.log(\`✅ \${side} image loaded successfully with source \${sourceIndex + 1}\`);
+                    };
+                    
+                    imgElement.onerror = () => {
+                      console.warn(\`⚠️ \${side} image failed with source \${sourceIndex + 1}, trying next...\`);
+                      sourceIndex++;
+                      tryNextSource();
+                    };
+                    
+                    imgElement.src = source;
+                  };
+                  
+                  tryNextSource();
+                };
+                
+                // Set up image loading with fallbacks
+                tryImageSources(newLeftImg, leftImage, 'Left');
+                tryImageSources(newRightImg, rightImage, 'Right');
+                
+                // Store image data for choice handling
+                leftChoice.dataset.imageId = leftImage.id;
+                rightChoice.dataset.imageId = rightImage.id;
+                
+                console.log('🎨 Real images loading initiated');
+                
+              } catch (error) {
+                console.error('Error in displayImagePair:', error);
+                // Fallback to style text only
+                leftChoice.style.background = '#3B82F6';
+                leftChoice.innerHTML = '<div style="color:white;padding:20px;text-align:center;font-size:18px;font-weight:bold;">' + leftImage.style.toUpperCase() + '<br><small>ID: ' + leftImage.id + '</small></div>';
+                
+                rightChoice.style.background = '#10B981';
+                rightChoice.innerHTML = '<div style="color:white;padding:20px;text-align:center;font-size:18px;font-weight:bold;">' + rightImage.style.toUpperCase() + '<br><small>ID: ' + rightImage.id + '</small></div>';
+              }
             }
 
             async makeChoice(side) {
@@ -262,6 +367,9 @@ export const renderer = jsxRenderer(({ children }) => {
               this.currentLimit = 20;
               this.hasMore = true;
               
+              // Wait for DOM to be ready
+              await new Promise(resolve => setTimeout(resolve, 100));
+              
               await this.loadAdminStats();
               await this.loadImageGallery();
               
@@ -269,9 +377,30 @@ export const renderer = jsxRenderer(({ children }) => {
               const uploadForm = document.getElementById('upload-form');
               const imageInput = document.getElementById('image-input');
               
+              // Debug: Add click listener to label
+              const uploadLabel = document.querySelector('label[for="image-input"]');
+              uploadLabel?.addEventListener('click', () => {
+                console.log('Label clicked, triggering file input');
+                imageInput?.click();
+              });
+              
+              // File input change listener
+              imageInput?.addEventListener('change', async (e) => {
+                console.log('File input changed:', e.target.files);
+                if (e.target.files && e.target.files.length > 0) {
+                  await this.handleImageUpload(e.target.files);
+                }
+              });
+              
               uploadForm?.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                await this.handleImageUpload(imageInput.files);
+                console.log('Form submitted with files:', imageInput?.files);
+                await this.handleImageUpload(imageInput?.files);
+              });
+              
+              // Test upload button
+              document.getElementById('test-upload-btn')?.addEventListener('click', async () => {
+                await this.testUpload();
               });
 
               // Search and filter
@@ -279,12 +408,17 @@ export const renderer = jsxRenderer(({ children }) => {
               document.getElementById('search-input')?.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') this.searchImages();
               });
+              
+              // Auto-filter when dropdowns change
+              document.getElementById('style-filter')?.addEventListener('change', () => this.searchImages());
+              document.getElementById('status-filter')?.addEventListener('change', () => this.searchImages());
 
               // Bulk actions
               document.getElementById('bulk-activate')?.addEventListener('click', () => this.bulkAction('activate'));
               document.getElementById('bulk-deactivate')?.addEventListener('click', () => this.bulkAction('deactivate'));
               document.getElementById('bulk-delete')?.addEventListener('click', () => this.bulkAction('delete'));
               document.getElementById('clear-selection')?.addEventListener('click', () => this.clearSelection());
+              document.getElementById('delete-all')?.addEventListener('click', () => this.deleteAllImages());
 
               // Load more
               document.getElementById('load-more-btn')?.addEventListener('click', () => this.loadMoreImages());
@@ -310,6 +444,43 @@ export const renderer = jsxRenderer(({ children }) => {
                 
               } catch (error) {
                 console.error('Error loading admin stats:', error);
+              }
+            }
+
+            async testUpload() {
+              try {
+                // Create a small test image as blob
+                const canvas = document.createElement('canvas');
+                canvas.width = 100;
+                canvas.height = 100;
+                const ctx = canvas.getContext('2d');
+                
+                // Draw a simple test image
+                ctx.fillStyle = '#' + Math.floor(Math.random()*16777215).toString(16);
+                ctx.fillRect(0, 0, 100, 100);
+                ctx.fillStyle = 'white';
+                ctx.font = '14px Arial';
+                ctx.fillText('TEST', 30, 55);
+                
+                // Convert to blob
+                const blob = await new Promise(resolve => {
+                  canvas.toBlob(resolve, 'image/png');
+                });
+                
+                // Create file with random style name
+                const styles = ['modern', 'classical', 'minimalist', 'industrial', 'traditional'];
+                const randomStyle = styles[Math.floor(Math.random() * styles.length)];
+                const timestamp = Date.now();
+                const filename = \`test_\${randomStyle}_architecture_\${timestamp}.png\`;
+                
+                const testFile = new File([blob], filename, { type: 'image/png' });
+                
+                // Upload using existing function
+                await this.handleImageUpload([testFile]);
+                
+              } catch (error) {
+                console.error('Error creating test upload:', error);
+                alert('Không thể tạo test upload');
               }
             }
 
@@ -340,7 +511,8 @@ export const renderer = jsxRenderer(({ children }) => {
                 
                 await this.loadAdminStats();
                 await this.loadImageGallery();
-                document.getElementById('image-input').value = '';
+                const imageInput = document.getElementById('image-input');
+                if (imageInput) imageInput.value = '';
                 alert('Upload thành công!');
                 
               } catch (error) {
@@ -357,21 +529,27 @@ export const renderer = jsxRenderer(({ children }) => {
                 
                 if (this.currentOffset === 0) {
                   // Reset gallery if this is a new search
-                  document.getElementById('image-gallery').innerHTML = '';
+                  const gallery = document.getElementById('image-gallery');
+                  if (gallery) {
+                    gallery.innerHTML = '';
+                  }
                   this.selectedImages.clear();
                   this.updateBulkActions();
                 }
                 
                 this.hasMore = data.hasMore;
-                this.displayImages(data.images);
+                this.displayImages(data.images || []);
                 this.updateLoadMoreButton();
                 
                 if (data.total === 0) {
                   this.showEmptyState();
+                } else {
+                  this.hideEmptyState();
                 }
                 
               } catch (error) {
                 console.error('Error loading image gallery:', error);
+                this.showEmptyState();
               }
             }
 
@@ -392,14 +570,61 @@ export const renderer = jsxRenderer(({ children }) => {
             displayImages(images) {
               const gallery = document.getElementById('image-gallery');
               
-              images.forEach(image => {
+              if (!gallery) {
+                console.error('Gallery element not found');
+                return;
+              }
+              
+              images.forEach((image, index) => {
                 const div = document.createElement('div');
                 div.className = 'relative group bg-gray-100 rounded-lg overflow-hidden aspect-square cursor-pointer hover:shadow-lg transition-all';
+                
+                // Try to use real image first, fallback to placeholder
+                const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316'];
+                const placeholderColor = colors[image.id % colors.length];
+                
+                // Possible image sources
+                const imageSources = [
+                  \`/api/images/\${image.id}\`,  // API endpoint with fallback
+                  image.file_path,  // Direct file path
+                  '/static' + image.file_path  // Static serving
+                ];
+                
+                // Rút gọn filename nếu quá dài
+                const shortFilename = image.filename.length > 20 ? 
+                  image.filename.substring(0, 17) + '...' : image.filename;
+                
+                // Create SVG without special chars to avoid btoa encoding issues
+                const safeStyle = image.style.replace(/[^\x20-\x7E]/g, ''); // Keep only printable ASCII
+                const safeFilename = shortFilename.replace(/[^\x20-\x7E]/g, ''); // Keep only printable ASCII
+                const statusText = image.is_active ? 'Active' : 'Inactive';
+                
+                const svgContent = \`<svg width="300" height="300" xmlns="http://www.w3.org/2000/svg">
+                  <defs>
+                    <linearGradient id="grad\${image.id}" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" style="stop-color:\${placeholderColor};stop-opacity:1" />
+                      <stop offset="100%" style="stop-color:\${placeholderColor}CC;stop-opacity:1" />
+                    </linearGradient>
+                  </defs>
+                  <rect width="300" height="300" fill="url(#grad\${image.id})"/>
+                  <circle cx="150" cy="100" r="30" fill="rgba(255,255,255,0.2)"/>
+                  <rect x="135" y="88" width="30" height="20" rx="4" fill="white" opacity="0.8"/>
+                  <circle cx="142" cy="93" r="2" fill="\${placeholderColor}"/>
+                  <rect x="148" y="95" width="12" height="8" rx="1" fill="\${placeholderColor}"/>
+                  <text x="150" y="140" font-family="Arial, sans-serif" font-size="16" fill="white" text-anchor="middle" font-weight="bold">\${safeStyle.toUpperCase()}</text>
+                  <text x="150" y="160" font-family="Arial, sans-serif" font-size="11" fill="white" text-anchor="middle" opacity="0.9">ID: \${image.id}</text>
+                  <text x="150" y="180" font-family="Arial, sans-serif" font-size="10" fill="white" text-anchor="middle" opacity="0.8">\${safeFilename}</text>
+                  <text x="150" y="200" font-family="Arial, sans-serif" font-size="9" fill="white" text-anchor="middle" opacity="0.7">\${statusText}</text>
+                </svg>\`;
+                
+                const placeholderSvg = \`data:image/svg+xml;base64,\${btoa(svgContent)}\`;
+                
                 div.innerHTML = \`
                   <input type="checkbox" class="image-checkbox absolute top-2 left-2 z-10 rounded" data-image-id="\${image.id}" />
-                  <img src="https://picsum.photos/300/300?random=\${image.id}" 
+                  <img src="\${imageSources[0]}" 
                        alt="\${image.style}" 
-                       class="w-full h-full object-cover">
+                       class="w-full h-full object-cover"
+                       onError="this.onerror=null; this.src='\${imageSources[1]}'; if(this.complete && this.naturalWidth===0) this.src='\${imageSources[2]}';">
                   <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-opacity flex items-end">
                     <div class="p-3 text-white opacity-0 group-hover:opacity-100 transition-opacity w-full">
                       <div class="flex items-center justify-between">
@@ -427,18 +652,62 @@ export const renderer = jsxRenderer(({ children }) => {
                   \${!image.is_active ? '<div class="absolute inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center"><span class="text-white text-sm font-medium">Đã tắt</span></div>' : ''}
                 \`;
                 
-                // Add event listeners
+                // Add event listeners immediately after creating the element
                 const checkbox = div.querySelector('.image-checkbox');
                 const editBtn = div.querySelector('.edit-btn');
                 const detailsBtn = div.querySelector('.details-btn');
                 const toggleBtn = div.querySelector('.toggle-btn');
                 const deleteBtn = div.querySelector('.delete-btn');
                 
-                checkbox?.addEventListener('change', (e) => this.toggleImageSelection(e.target.dataset.imageId, e.target.checked));
-                editBtn?.addEventListener('click', (e) => { e.stopPropagation(); this.editImage(e.target.dataset.imageId); });
-                detailsBtn?.addEventListener('click', (e) => { e.stopPropagation(); this.showImageDetails(e.target.dataset.imageId); });
-                toggleBtn?.addEventListener('click', (e) => { e.stopPropagation(); this.toggleImageStatus(e.target.dataset.imageId); });
-                deleteBtn?.addEventListener('click', (e) => { e.stopPropagation(); this.deleteImage(e.target.dataset.imageId); });
+                // Add debug logging for delete button
+                console.log('🔧 Setting up button listeners for image', image.id, {
+                  checkbox, editBtn, detailsBtn, toggleBtn, deleteBtn
+                });
+                
+                if (checkbox) {
+                  checkbox.addEventListener('change', (e) => {
+                    console.log('📋 Checkbox changed for image', image.id, 'checked:', e.target.checked);
+                    this.toggleImageSelection(image.id.toString(), e.target.checked);
+                  });
+                }
+                
+                if (editBtn) {
+                  editBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('✏️ Edit button clicked for image', image.id);
+                    this.editImage(image.id);
+                  });
+                }
+                
+                if (detailsBtn) {
+                  detailsBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('ℹ️ Details button clicked for image', image.id);
+                    this.showImageDetails(image.id);
+                  });
+                }
+                
+                if (toggleBtn) {
+                  toggleBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('👁️ Toggle button clicked for image', image.id);
+                    this.toggleImageStatus(image.id);
+                  });
+                }
+                
+                if (deleteBtn) {
+                  deleteBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('🗑️ Delete button clicked for image', image.id);
+                    this.deleteImage(image.id);
+                  });
+                } else {
+                  console.error('❌ Delete button not found for image', image.id);
+                }
                 
                 gallery.appendChild(div);
               });
@@ -447,11 +716,15 @@ export const renderer = jsxRenderer(({ children }) => {
             }
 
             toggleImageSelection(imageId, checked) {
+              console.log('🔄 toggleImageSelection:', imageId, checked);
               if (checked) {
                 this.selectedImages.add(imageId);
+                console.log('➕ Added image to selection:', imageId);
               } else {
                 this.selectedImages.delete(imageId);
+                console.log('➖ Removed image from selection:', imageId);
               }
+              console.log('📊 Current selection:', Array.from(this.selectedImages));
               this.updateBulkActions();
             }
 
@@ -571,9 +844,12 @@ export const renderer = jsxRenderer(({ children }) => {
                   content.innerHTML = \`
                     <div class="space-y-4">
                       <div class="text-center">
-                        <img src="https://picsum.photos/200/200?random=\${data.image.id}" 
-                             alt="\${data.image.style}" 
-                             class="w-32 h-32 object-cover rounded-lg mx-auto mb-3">
+                        <div class="w-32 h-32 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg mx-auto mb-3 flex items-center justify-center">
+                          <div class="text-white text-center">
+                            <i class="fas fa-image text-2xl mb-2"></i>
+                            <p class="text-xs capitalize">\${data.image.style}</p>
+                          </div>
+                        </div>
                         <h4 class="text-lg font-medium">\${data.image.filename}</h4>
                         <p class="text-sm text-gray-500 capitalize">\${data.image.style} style</p>
                       </div>
@@ -644,25 +920,37 @@ export const renderer = jsxRenderer(({ children }) => {
             }
 
             async deleteImage(imageId) {
-              if (!confirm('Bạn có chắc muốn xóa ảnh này?')) return;
+              console.log('🗑️ deleteImage called with ID:', imageId);
+              
+              if (!confirm(\`Bạn có chắc muốn xóa ảnh có ID \${imageId}?\`)) {
+                console.log('❌ User cancelled delete operation');
+                return;
+              }
+              
+              console.log('✅ User confirmed delete, proceeding...');
               
               try {
+                console.log('📡 Calling DELETE API for image', imageId);
                 const response = await fetch(\`/api/admin/images/\${imageId}\`, {
                   method: 'DELETE'
                 });
                 
+                console.log('📥 API response status:', response.status);
                 const result = await response.json();
+                console.log('📊 API result:', result);
                 
                 if (result.success) {
+                  console.log('✅ Delete successful, refreshing gallery...');
                   await this.loadImageGallery();
                   await this.loadAdminStats();
-                  alert(result.message);
+                  alert(result.message || 'Xóa ảnh thành công!');
                 } else {
+                  console.error('❌ Delete failed:', result.error);
                   alert(result.error || 'Có lỗi xảy ra');
                 }
               } catch (error) {
-                console.error('Error deleting image:', error);
-                alert('Có lỗi xảy ra');
+                console.error('💥 Error deleting image:', error);
+                alert('Có lỗi xảy ra khi xóa ảnh');
               }
             }
 
@@ -681,34 +969,105 @@ export const renderer = jsxRenderer(({ children }) => {
               if (!confirm(\`Bạn có chắc muốn \${actionText} \${this.selectedImages.size} ảnh đã chọn?\`)) return;
               
               try {
+                // Convert selectedImages to numbers and log for debugging
+                const imageIds = Array.from(this.selectedImages).map(id => parseInt(id));
+                console.log('🗑️ Bulk action:', action, 'for images:', imageIds);
+                
+                const requestBody = {
+                  action,
+                  imageIds
+                };
+                console.log('📤 Request body:', requestBody);
+                
                 const response = await fetch('/api/admin/images/bulk', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    action,
-                    imageIds: Array.from(this.selectedImages)
-                  })
+                  body: JSON.stringify(requestBody)
                 });
                 
+                console.log('📥 Bulk API response status:', response.status);
                 const result = await response.json();
+                console.log('📊 Bulk API result:', result);
                 
                 if (result.success) {
+                  console.log('✅ Bulk action successful');
                   this.clearSelection();
                   await this.loadImageGallery();
                   await this.loadAdminStats();
                   alert(result.message);
                 } else {
-                  alert(result.error || 'Có lỗi xảy ra');
+                  console.error('❌ Bulk action failed:', result.error);
+                  alert(result.error || 'Failed to perform bulk action');
                 }
               } catch (error) {
-                console.error('Error performing bulk action:', error);
-                alert('Có lỗi xảy ra');
+                console.error('💥 Error performing bulk action:', error);
+                alert('Có lỗi xảy ra khi thực hiện bulk action');
+              }
+            }
+
+            async deleteAllImages() {
+              console.log('🚨 Delete all images requested');
+              
+              // Show confirmation dialog
+              const confirmation = confirm(
+                '⚠️ CẢNH BÁO: Bạn có chắc chắn muốn xóa TẤT CẢ ảnh?\n\n' +
+                '• Nếu có survey responses: Tất cả ảnh sẽ bị DEACTIVATE\n' +
+                '• Nếu không có responses: Tất cả ảnh sẽ bị XÓA HOÀN TOÀN\n\n' +
+                'Hành động này KHÔNG THỂ HOÀN TÁC!'
+              );
+              
+              if (!confirmation) {
+                console.log('❌ Delete all cancelled by user');
+                return;
+              }
+
+              // Double confirmation for safety
+              const doubleConfirm = confirm(
+                '🔴 LẦN CUỐI: Bạn THẬT SỤ muốn xóa tất cả ảnh?\n\n' +
+                'Nhấn OK để tiếp tục, Cancel để hủy bỏ.'
+              );
+
+              if (!doubleConfirm) {
+                console.log('❌ Delete all cancelled on double confirmation');
+                return;
+              }
+
+              try {
+                console.log('🗑️ Proceeding with delete all...');
+                const response = await fetch('/api/admin/images/all', {
+                  method: 'DELETE',
+                  headers: { 'Content-Type': 'application/json' }
+                });
+
+                const result = await response.json();
+                console.log('📊 Delete all result:', result);
+
+                if (result.success) {
+                  console.log('✅ Delete all successful');
+                  await this.loadImageGallery();
+                  await this.loadAdminStats();
+                  alert('Thành công: ' + result.message);
+                } else {
+                  console.error('❌ Delete all failed:', result.error);
+                  alert(result.error || 'Failed to delete all images');
+                }
+              } catch (error) {
+                console.error('💥 Error deleting all images:', error);
+                alert('Có lỗi xảy ra khi xóa tất cả ảnh');
               }
             }
           }
 
           document.addEventListener('DOMContentLoaded', () => {
-            new ArchitectureSurvey();
+            const survey = new ArchitectureSurvey();
+            
+            // Auto-start survey for testing
+            if (window.location.search.includes('autostart')) {
+              setTimeout(() => {
+                console.log('🧪 Auto-starting survey for testing...');
+                survey.startSurvey();
+              }, 1000);
+            }
           });
         `}} />
       </body>

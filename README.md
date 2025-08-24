@@ -12,6 +12,7 @@
 ## URLs
 - **Production**: https://3000-ie76h2s5lx9ep7o3bbird-6532622b.e2b.dev ✅ WORKING
 - **Admin**: https://3000-ie76h2s5lx9ep7o3bbird-6532622b.e2b.dev/admin ✅ WORKING  
+- **API Images**: `/api/images/:id` - Serves architectural images with fallback SVG
 - **GitHub**: [Chưa setup]
 
 ## Data Architecture
@@ -95,6 +96,9 @@
 - `PATCH /api/admin/images/:id/toggle` - **🆕 Toggle active/inactive**
 - `POST /api/admin/images/bulk` - **🆕 Bulk actions (activate/deactivate/delete)**
 
+### Image APIs:
+- `GET /api/images/:id` - **🎨 Serve architectural images với style-specific SVG fallback**
+
 ## Deployment Status
 - **Platform**: Cloudflare Pages (Local Development)
 - **Status**: ✅ Active
@@ -123,6 +127,11 @@
   - ✅ Edit thông tin ảnh (filename, style, status)
   - ✅ Toggle active/inactive status
   - ✅ Delete ảnh (với safety check cho responses)
+- ✅ **Real Architectural Image Display**:
+  - ✅ Survey hiển thị ảnh thực tế thay vì placeholder icons
+  - ✅ Admin gallery hiển thị ảnh thực tế với fallback
+  - ✅ Style-specific architectural SVG cho từng phong cách
+  - ✅ Multi-source fallback chain: R2 → API endpoint → SVG
   - ✅ Bulk actions (activate, deactivate, delete multiple)
   - ✅ Image details modal với usage statistics
   - ✅ Pagination với load more functionality

@@ -25,6 +25,155 @@ function extractStyleFromFilename(filename: string): string {
   return filename.replace(/(_\d+|\d+)?\.(jpg|jpeg|png|webp)$/i, '').replace(/_.*$/, '').toLowerCase()
 }
 
+// Static file serving for images and assets
+app.get('/images/*', serveStatic({ root: './public' }))
+app.get('/static/*', serveStatic({ root: './public' }))
+app.get('/favicon.ico', serveStatic({ root: './public' }))
+
+
+
+// API endpoint to serve images from database
+app.get('/api/images/:id', async (c) => {
+  const { env } = c
+  const imageId = c.req.param('id')
+  
+  try {
+    // Get image info from database
+    const { results: image } = await env.DB.prepare(`
+      SELECT * FROM architecture_images WHERE id = ? AND is_active = 1
+    `).bind(imageId).all()
+    
+    if (image.length === 0) {
+      return c.notFound()
+    }
+    
+    const imageData = image[0]
+    
+    // Try to get image from R2 storage
+    try {
+      const object = await env.R2.get(imageData.file_path)
+      if (object) {
+        return new Response(object.body, {
+          headers: {
+            'Content-Type': object.httpMetadata?.contentType || 'image/jpeg',
+            'Cache-Control': 'public, max-age=31536000'
+          }
+        })
+      }
+    } catch (r2Error) {
+      console.log('R2 not available or image not found in R2:', r2Error.message)
+    }
+    
+    // Fallback: return SVG placeholder with architectural style representation
+    const safeStyle = imageData.style.replace(/[^\x20-\x7E]/g, '')
+    
+    // Create style-specific architectural SVG representations
+    const getArchitecturalSVG = (style: string, imageId: number) => {
+      const styleColors = {
+        'modern': { bg: '#2D3748', accent: '#4299E1', text: '#F7FAFC' },
+        'classical': { bg: '#744210', accent: '#D69E2E', text: '#FFFAF0' },
+        'industrial': { bg: '#4A5568', accent: '#718096', text: '#F7FAFC' },
+        'traditional': { bg: '#822727', accent: '#E53E3E', text: '#FFFAF0' },
+        'contemporary': { bg: '#553C9A', accent: '#9F7AEA', text: '#FAF5FF' },
+        'minimalist': { bg: '#1A202C', accent: '#CBD5E0', text: '#F7FAFC' },
+        'victorian': { bg: '#553C9A', accent: '#805AD5', text: '#FAF5FF' },
+        'colonial': { bg: '#744210', accent: '#B7791F', text: '#FFFAF0' },
+        'brutalist': { bg: '#2D3748', accent: '#718096', text: '#F7FAFC' },
+        'gothic': { bg: '#2B2D42', accent: '#8D99AE', text: '#F8F9FA' }
+      }
+      
+      const colors = styleColors[style.toLowerCase()] || { bg: '#4A5568', accent: '#9CA3AF', text: '#F7FAFC' }
+      
+      let buildingStructure = ''
+      
+      switch(style.toLowerCase()) {
+        case 'modern':
+          buildingStructure = `
+            <rect x="120" y="80" width="160" height="120" fill="${colors.accent}" rx="4"/>
+            <rect x="140" y="100" width="30" height="40" fill="${colors.bg}" opacity="0.8"/>
+            <rect x="180" y="100" width="30" height="40" fill="${colors.bg}" opacity="0.8"/>
+            <rect x="220" y="100" width="30" height="40" fill="${colors.bg}" opacity="0.8"/>
+            <rect x="140" y="150" width="30" height="40" fill="${colors.bg}" opacity="0.8"/>
+            <rect x="180" y="150" width="30" height="40" fill="${colors.bg}" opacity="0.8"/>
+            <rect x="220" y="150" width="30" height="40" fill="${colors.bg}" opacity="0.8"/>
+            <rect x="100" y="200" width="200" height="8" fill="${colors.accent}"/>
+          `
+          break
+        case 'classical':
+          buildingStructure = `
+            <rect x="100" y="180" width="200" height="20" fill="${colors.accent}"/>
+            <rect x="130" y="90" width="20" height="90" fill="${colors.accent}"/>
+            <rect x="160" y="90" width="20" height="90" fill="${colors.accent}"/>
+            <rect x="190" y="90" width="20" height="90" fill="${colors.accent}"/>
+            <rect x="220" y="90" width="20" height="90" fill="${colors.accent}"/>
+            <rect x="250" y="90" width="20" height="90" fill="${colors.accent}"/>
+            <polygon points="120,90 200,60 280,90" fill="${colors.accent}"/>
+            <rect x="180" y="120" width="40" height="60" fill="${colors.bg}" opacity="0.9"/>
+          `
+          break
+        case 'industrial':
+          buildingStructure = `
+            <rect x="80" y="120" width="240" height="80" fill="${colors.accent}"/>
+            <rect x="100" y="100" width="40" height="100" fill="${colors.accent}"/>
+            <rect x="150" y="80" width="40" height="120" fill="${colors.accent}"/>
+            <rect x="200" y="90" width="40" height="110" fill="${colors.accent}"/>
+            <rect x="250" y="100" width="40" height="100" fill="${colors.accent}"/>
+            <rect x="110" y="110" width="20" height="20" fill="${colors.bg}" opacity="0.8"/>
+            <rect x="160" y="90" width="20" height="20" fill="${colors.bg}" opacity="0.8"/>
+            <rect x="210" y="100" width="20" height="20" fill="${colors.bg}" opacity="0.8"/>
+            <rect x="260" y="110" width="20" height="20" fill="${colors.bg}" opacity="0.8"/>
+          `
+          break
+        case 'traditional':
+          buildingStructure = `
+            <polygon points="200,70 140,120 260,120" fill="${colors.accent}"/>
+            <rect x="150" y="120" width="100" height="80" fill="${colors.accent}"/>
+            <rect x="180" y="140" width="15" height="25" fill="${colors.bg}" opacity="0.9"/>
+            <rect x="205" y="140" width="15" height="25" fill="${colors.bg}" opacity="0.9"/>
+            <rect x="190" y="170" width="20" height="30" fill="${colors.bg}" opacity="0.9"/>
+            <rect x="120" y="140" width="25" height="60" fill="${colors.accent}"/>
+            <rect x="255" y="140" width="25" height="60" fill="${colors.accent}"/>
+          `
+          break
+        default:
+          buildingStructure = `
+            <rect x="140" y="100" width="120" height="100" fill="${colors.accent}" rx="6"/>
+            <rect x="160" y="120" width="25" height="30" fill="${colors.bg}" opacity="0.8"/>
+            <rect x="195" y="120" width="25" height="30" fill="${colors.bg}" opacity="0.8"/>
+            <rect x="230" y="120" width="25" height="30" fill="${colors.bg}" opacity="0.8"/>
+            <rect x="177" y="170" width="25" height="30" fill="${colors.bg}" opacity="0.9"/>
+          `
+      }
+      
+      return `<svg width="400" height="256" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 256">
+        <defs>
+          <linearGradient id="skyGrad${imageId}" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style="stop-color:${colors.bg};stop-opacity:1" />
+            <stop offset="100%" style="stop-color:${colors.bg};stop-opacity:0.8" />
+          </linearGradient>
+        </defs>
+        <rect width="400" height="256" fill="url(#skyGrad${imageId})"/>
+        ${buildingStructure}
+        <text x="200" y="230" font-family="system-ui, -apple-system, sans-serif" font-size="18" fill="${colors.text}" text-anchor="middle" font-weight="600">${safeStyle.toUpperCase()}</text>
+        <text x="200" y="245" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="${colors.text}" text-anchor="middle" opacity="0.7">Architectural Style Preview</text>
+      </svg>`
+    }
+    
+    const svgContent = getArchitecturalSVG(safeStyle, imageData.id)
+    
+    return new Response(svgContent, {
+      headers: {
+        'Content-Type': 'image/svg+xml',
+        'Cache-Control': 'public, max-age=3600'
+      }
+    })
+    
+  } catch (error) {
+    console.error('Error serving image:', error)
+    return c.text('Image not found', 404)
+  }
+})
+
 // API Routes
 
 // Tạo session khảo sát mới
@@ -292,14 +441,33 @@ app.delete('/api/admin/images/:id', async (c) => {
   const imageId = c.req.param('id')
   
   try {
+    console.log('🗑️ DELETE request for image ID:', imageId)
+    
+    // Lấy thông tin ảnh hiện tại
+    const { results: imageInfo } = await env.DB.prepare(`
+      SELECT is_active FROM architecture_images WHERE id = ?
+    `).bind(imageId).all()
+    
+    console.log('📊 Image info:', imageInfo)
+
+    if (imageInfo.length === 0) {
+      return c.json({ error: 'Image not found' }, 404)
+    }
+
+    const isCurrentlyActive = imageInfo[0].is_active === 1
+
     // Kiểm tra xem ảnh có đang được sử dụng trong responses không
     const { results: usageCheck } = await env.DB.prepare(`
       SELECT COUNT(*) as count FROM user_responses 
       WHERE chosen_image_id = ? OR image_left_id = ? OR image_right_id = ?
     `).bind(imageId, imageId, imageId).all()
 
-    if (usageCheck[0]?.count > 0) {
-      // Nếu có responses, chỉ deactivate thay vì xóa
+    const hasResponses = usageCheck[0]?.count > 0
+    
+    console.log('🔍 Analysis:', { isCurrentlyActive, hasResponses })
+
+    if (hasResponses && isCurrentlyActive) {
+      // Nếu ảnh đang active và có responses, chỉ deactivate
       await env.DB.prepare(`
         UPDATE architecture_images SET is_active = 0 WHERE id = ?
       `).bind(imageId).run()
@@ -310,23 +478,42 @@ app.delete('/api/admin/images/:id', async (c) => {
         action: 'deactivated'
       })
     } else {
-      // Nếu không có responses, có thể xóa hoàn toàn
+      // Nếu ảnh đã bị tắt hoặc không có responses, có thể xóa hoàn toàn
+      console.log('🗑️ Attempting to delete image...')
+      
+      if (hasResponses) {
+        // Nếu có responses, xóa responses trước để tránh foreign key constraint
+        console.log('🧹 Cleaning up responses first...')
+        await env.DB.prepare(`
+          DELETE FROM user_responses 
+          WHERE chosen_image_id = ? OR image_left_id = ? OR image_right_id = ?
+        `).bind(imageId, imageId, imageId).run()
+        console.log('✅ Responses cleaned up')
+      }
+      
       const result = await env.DB.prepare(`
         DELETE FROM architecture_images WHERE id = ?
       `).bind(imageId).run()
+      
+      console.log('📊 Delete result:', result)
 
       if (result.changes === 0) {
+        console.log('❌ No changes made, image not found')
         return c.json({ error: 'Image not found' }, 404)
       }
 
+      const reason = !hasResponses ? 'no survey responses' : 'already inactive'
+      console.log('✅ Delete successful, reason:', reason)
       return c.json({ 
         success: true, 
         message: 'Image deleted successfully',
+        reason: reason,
         action: 'deleted'
       })
     }
   } catch (error) {
-    console.error('Error deleting image:', error)
+    console.error('💥 Error deleting image:', error)
+    console.error('Error details:', error.message, error.stack)
     return c.json({ error: 'Failed to delete image' }, 500)
   }
 })
@@ -401,9 +588,14 @@ app.get('/api/admin/images/search', async (c) => {
       LIMIT ? OFFSET ?
     `).bind(...params, limit, offset).all()
 
-    const { results: totalCount } = await env.DB.prepare(`
+    // Build count query with same parameters
+    const countQuery = env.DB.prepare(`
       SELECT COUNT(*) as count FROM architecture_images ${whereClause}
-    `).bind(...params).all()
+    `)
+    
+    const { results: totalCount } = params.length > 0 ? 
+      await countQuery.bind(...params).all() : 
+      await countQuery.all()
 
     return c.json({
       images,
@@ -477,49 +669,74 @@ app.post('/api/admin/images/bulk', async (c) => {
         result = await env.DB.prepare(`
           UPDATE architecture_images SET is_active = 1 WHERE id IN (${placeholders})
         `).bind(...imageIds).run()
-        message = `Activated ${result.changes} images`
+        message = `Activated ${result.changes || imageIds.length} images`
         break
 
       case 'deactivate':
         result = await env.DB.prepare(`
           UPDATE architecture_images SET is_active = 0 WHERE id IN (${placeholders})
         `).bind(...imageIds).run()
-        message = `Deactivated ${result.changes} images`
+        message = `Deactivated ${result.changes || imageIds.length} images`
         break
 
       case 'delete':
-        // Kiểm tra usage trước khi xóa
-        const { results: usageCheck } = await env.DB.prepare(`
-          SELECT DISTINCT chosen_image_id as id FROM user_responses 
-          WHERE chosen_image_id IN (${placeholders})
-          UNION
-          SELECT DISTINCT image_left_id as id FROM user_responses 
-          WHERE image_left_id IN (${placeholders})
-          UNION  
-          SELECT DISTINCT image_right_id as id FROM user_responses 
-          WHERE image_right_id IN (${placeholders})
-        `).bind(...imageIds).all()
-
-        const usedImageIds = usageCheck.map(row => row.id)
-        const unusedImageIds = imageIds.filter(id => !usedImageIds.includes(parseInt(id)))
+        // Improved delete logic:
+        // 1. Delete inactive images directly
+        // 2. For active images with responses, deactivate instead
+        // 3. For active images without responses, delete directly
         
-        if (usedImageIds.length > 0) {
-          // Deactivate used images
-          await env.DB.prepare(`
-            UPDATE architecture_images SET is_active = 0 
-            WHERE id IN (${usedImageIds.map(() => '?').join(',')})
-          `).bind(...usedImageIds).run()
+        let deletedCount = 0
+        let deactivatedCount = 0
+        
+        for (const imageId of imageIds) {
+          // Get image status
+          const { results: imageInfo } = await env.DB.prepare(`
+            SELECT is_active FROM architecture_images WHERE id = ?
+          `).bind(imageId).all()
+          
+          if (imageInfo.length === 0) continue
+          
+          const isActive = imageInfo[0].is_active === 1
+          
+          // Check if image has responses
+          const { results: usageCheck } = await env.DB.prepare(`
+            SELECT COUNT(*) as count FROM user_responses 
+            WHERE chosen_image_id = ? OR image_left_id = ? OR image_right_id = ?
+          `).bind(imageId, imageId, imageId).all()
+          
+          const hasResponses = usageCheck[0]?.count > 0
+          
+          if (hasResponses && isActive) {
+            // Active image with responses: deactivate
+            await env.DB.prepare(`
+              UPDATE architecture_images SET is_active = 0 WHERE id = ?
+            `).bind(imageId).run()
+            deactivatedCount++
+          } else {
+            // Inactive image or no responses: delete
+            if (hasResponses) {
+              // Clean up responses first to avoid foreign key constraint
+              await env.DB.prepare(`
+                DELETE FROM user_responses 
+                WHERE chosen_image_id = ? OR image_left_id = ? OR image_right_id = ?
+              `).bind(imageId, imageId, imageId).run()
+            }
+            
+            const deleteResult = await env.DB.prepare(`
+              DELETE FROM architecture_images WHERE id = ?
+            `).bind(imageId).run()
+            if (deleteResult.changes > 0) deletedCount++
+          }
         }
         
-        if (unusedImageIds.length > 0) {
-          // Delete unused images
-          await env.DB.prepare(`
-            DELETE FROM architecture_images 
-            WHERE id IN (${unusedImageIds.map(() => '?').join(',')})
-          `).bind(...unusedImageIds).run()
-        }
+        const actions = []
+        if (deletedCount > 0) actions.push('deleted ' + deletedCount)
+        if (deactivatedCount > 0) actions.push('deactivated ' + deactivatedCount)
         
-        message = `Deleted ${unusedImageIds.length} images, deactivated ${usedImageIds.length} images (had survey responses)`
+        message = actions.length > 0 
+          ? 'Successfully ' + actions.join(' and ') + ' images'
+          : 'No images were processed'
+        result = { changes: deletedCount + deactivatedCount }
         break
 
       default:
@@ -537,7 +754,50 @@ app.post('/api/admin/images/bulk', async (c) => {
   }
 })
 
-
+// Delete ALL images (admin) - DANGEROUS operation
+app.delete('/api/admin/images/all', async (c) => {
+  const { env } = c
+  
+  try {
+    console.log('🚨 DELETE ALL images request received')
+    
+    // First check if any images have responses
+    const { results: hasResponses } = await env.DB.prepare(`
+      SELECT COUNT(*) as count FROM user_responses
+    `).all()
+    
+    const responseCount = hasResponses[0]?.count || 0
+    
+    if (responseCount > 0) {
+      // If there are responses, only deactivate all images (safer approach)
+      const result = await env.DB.prepare(`
+        UPDATE architecture_images SET is_active = 0
+      `).run()
+      
+      return c.json({ 
+        success: true, 
+        message: `Đã deactivate tất cả ${result.changes} ảnh (do có survey responses)`,
+        action: 'deactivated',
+        affected: result.changes
+      })
+    } else {
+      // No responses, safe to delete all
+      const result = await env.DB.prepare(`
+        DELETE FROM architecture_images
+      `).run()
+      
+      return c.json({ 
+        success: true, 
+        message: `Đã xóa hoàn toàn tất cả ${result.changes} ảnh`,
+        action: 'deleted',
+        affected: result.changes
+      })
+    }
+  } catch (error) {
+    console.error('Error deleting all images:', error)
+    return c.json({ error: 'Failed to delete all images' }, 500)
+  }
+})
 
 // Helper function để mô tả phong cách
 function getStyleDescription(style: string): string {
@@ -738,15 +998,23 @@ app.get('/admin', (c) => {
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
               <form id="upload-form" enctype="multipart/form-data">
                 <input type="file" id="image-input" accept="image/*" multiple className="hidden"/>
-                <label for="image-input" className="cursor-pointer">
-                  <i className="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-4"></i>
-                  <p className="text-lg font-medium text-gray-700">Chọn ảnh để upload</p>
-                  <p className="text-sm text-gray-500">Tên file sẽ quyết định phong cách (vd: modern_house_01.jpg)</p>
+                <label htmlFor="image-input" className="cursor-pointer block">
+                  <div className="mb-4">
+                    <i className="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-4 block"></i>
+                    <p className="text-lg font-medium text-gray-700">Chọn ảnh để upload</p>
+                    <p className="text-sm text-gray-500">Tên file sẽ quyết định phong cách (vd: modern_house_01.jpg)</p>
+                  </div>
                 </label>
-                <button type="submit" className="mt-4 bg-indigo-600 text-white py-2 px-6 rounded-lg font-medium hover:bg-indigo-700 transition-colors">
-                  <i className="fas fa-upload mr-2"></i>
-                  Upload
-                </button>
+                <div className="flex gap-4 justify-center mt-4">
+                  <button type="submit" className="bg-indigo-600 text-white py-2 px-6 rounded-lg font-medium hover:bg-indigo-700 transition-colors">
+                    <i className="fas fa-upload mr-2"></i>
+                    Upload
+                  </button>
+                  <button type="button" id="test-upload-btn" className="bg-green-600 text-white py-2 px-6 rounded-lg font-medium hover:bg-green-700 transition-colors">
+                    <i className="fas fa-flask mr-2"></i>
+                    Test Upload
+                  </button>
+                </div>
               </form>
             </div>
           </div>
@@ -791,11 +1059,24 @@ app.get('/admin', (c) => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Phong cách</label>
                   <select id="style-filter" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
                     <option value="all">Tất cả</option>
-                    <option value="modern">Modern</option>
+                    <option value="art deco">Art Deco</option>
+                    <option value="bauhaus">Bauhaus</option>
+                    <option value="brutalist">Brutalist</option>
+                    <option value="classic">Classic</option>
                     <option value="classical">Classical</option>
+                    <option value="colonial">Colonial</option>
+                    <option value="craftsman">Craftsman</option>
+                    <option value="gothic">Gothic</option>
                     <option value="industrial">Industrial</option>
-                    <option value="traditional">Traditional</option>
+                    <option value="italian">Italian</option>
+                    <option value="mediterranean">Mediterranean</option>
                     <option value="minimalist">Minimalist</option>
+                    <option value="modern">Modern</option>
+                    <option value="neoclassic">Neoclassic</option>
+                    <option value="prairie">Prairie</option>
+                    <option value="spanish colonial">Spanish Colonial</option>
+                    <option value="traditional">Traditional</option>
+                    <option value="tudor">Tudor</option>
                   </select>
                 </div>
                 <div>
@@ -834,6 +1115,10 @@ app.get('/admin', (c) => {
                   </button>
                   <button id="clear-selection" className="text-sm bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600 transition-colors">
                     Bỏ chọn
+                  </button>
+                  <button id="delete-all" className="text-sm bg-red-800 text-white px-3 py-1 rounded hover:bg-red-900 transition-colors border-2 border-red-600">
+                    <i className="fas fa-exclamation-triangle mr-1"></i>
+                    Xóa tất cả
                   </button>
                 </div>
               </div>

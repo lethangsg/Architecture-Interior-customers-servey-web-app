@@ -72,12 +72,38 @@ class ArchitectureSurvey {
   }
 
   displayImagePair(leftImage, rightImage) {
+    console.log('🖼️ displayImagePair called:', { leftImage, rightImage })
+    
     const leftImg = document.getElementById('left-image')
     const rightImg = document.getElementById('right-image')
     
-    // Sử dụng placeholder images vì chưa có R2 storage
-    leftImg.src = `https://picsum.photos/400/400?random=${leftImage.id}`
-    rightImg.src = `https://picsum.photos/400/400?random=${rightImage.id}`
+    console.log('🎯 Image elements:', { leftImg, rightImg })
+    
+    // Sử dụng API endpoint để lấy ảnh thực tế hoặc SVG fallback
+    const leftSrc = `/api/images/${leftImage.id}`
+    const rightSrc = `/api/images/${rightImage.id}`
+    
+    console.log('🔗 Image sources:', { leftSrc, rightSrc })
+    
+    // Add error handlers
+    leftImg.onerror = () => {
+      console.error('❌ Left image failed to load:', leftSrc)
+    }
+    
+    rightImg.onerror = () => {
+      console.error('❌ Right image failed to load:', rightSrc)
+    }
+    
+    leftImg.onload = () => {
+      console.log('✅ Left image loaded successfully:', leftSrc)
+    }
+    
+    rightImg.onload = () => {
+      console.log('✅ Right image loaded successfully:', rightSrc)
+    }
+    
+    leftImg.src = leftSrc
+    rightImg.src = rightSrc
     
     leftImg.alt = `${leftImage.style} architecture`
     rightImg.alt = `${rightImage.style} architecture`
@@ -288,9 +314,13 @@ class ArchitectureSurvey {
           const div = document.createElement('div')
           div.className = 'relative group rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow'
           div.innerHTML = `
-            <img src="https://picsum.photos/200/200?random=${image.id}" 
+            <img src="/api/images/${image.id}" 
                  alt="${image.style}" 
-                 class="w-full h-32 object-cover">
+                 class="w-full h-32 object-cover"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
+            <div class="w-full h-32 bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg" style="display:none;">
+              ${image.style.toUpperCase()}
+            </div>
             <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-opacity flex items-end p-2">
               <div class="text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity">
                 <p class="font-medium capitalize">${image.style}</p>
