@@ -1233,8 +1233,8 @@ app.get('/admin', (c) => {
             </div>
 
             {/* Image Grid */}
-            <div id="image-gallery" className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-              {/* Images will be populated by JavaScript */}
+            <div id="image-gallery" className="pinterest-gallery">
+              {/* Pinterest-style masonry layout - Images will be populated by JavaScript */}
             </div>
 
             {/* Load More Button */}

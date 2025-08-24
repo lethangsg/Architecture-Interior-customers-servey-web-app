@@ -284,32 +284,179 @@ class ArchitectureSurvey {
       gallery.innerHTML = ''
       
       if (data.images && data.images.length > 0) {
-        data.images.forEach(image => {
-          const div = document.createElement('div')
-          div.className = 'relative group rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow'
-          div.innerHTML = `
+        data.images.forEach((image, index) => {
+          // Create Pinterest-style card
+          const card = document.createElement('div')
+          
+          // Add random height variation for Pinterest effect
+          const heightClasses = ['tall', 'medium', 'short']
+          const randomHeight = heightClasses[index % 3]
+          
+          card.className = `pinterest-card ${randomHeight}`
+          card.dataset.imageId = image.id
+          
+          card.innerHTML = `
+            <button class="pinterest-pin-btn">
+              <i class="fas fa-thumbtack mr-1"></i>
+              Pin
+            </button>
+            
             <img src="/api/images/${image.id}" 
                  alt="${image.style}" 
-                 class="w-full h-32 object-cover"
-                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
-            <div class="w-full h-32 bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg" style="display:none;">
+                 class="pinterest-card-image"
+                 style="height: ${this.getPinterestHeight(index)}px"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'"
+                 onload="this.classList.add('loaded')">
+            
+            <div class="w-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg" 
+                 style="display:none; height: ${this.getPinterestHeight(index)}px">
+              <i class="fas fa-building mr-2"></i>
               ${image.style.toUpperCase()}
             </div>
-            <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-opacity flex items-end p-2">
-              <div class="text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity">
-                <p class="font-medium capitalize">${image.style}</p>
-                <p class="text-xs opacity-75">${image.filename}</p>
+            
+            <div class="pinterest-card-overlay">
+              <div class="pinterest-card-actions">
+                <button class="pinterest-action-btn edit-btn" data-id="${image.id}" title="Edit Image">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button class="pinterest-action-btn toggle-btn" data-id="${image.id}" title="${image.is_active ? 'Deactivate' : 'Activate'}">
+                  <i class="fas fa-${image.is_active ? 'eye-slash' : 'eye'}"></i>
+                </button>
+                <button class="pinterest-action-btn delete-btn" data-id="${image.id}" title="Delete Image">
+                  <i class="fas fa-trash"></i>
+                </button>
+                <button class="pinterest-action-btn info-btn" data-id="${image.id}" title="View Details">
+                  <i class="fas fa-info"></i>
+                </button>
+              </div>
+              
+              <div class="pinterest-card-title">
+                ${image.style.toUpperCase()}
+                <div style="font-size: 10px; opacity: 0.8; font-weight: normal; margin-top: 2px;">
+                  ID: ${image.id} • ${image.filename.length > 20 ? image.filename.substring(0, 20) + '...' : image.filename}
+                </div>
               </div>
             </div>
+            
+            <div class="pinterest-status-badge ${image.is_active ? 'active' : 'inactive'}">
+              ${image.is_active ? '✓ Active' : '⏸ Inactive'}
+            </div>
           `
-          gallery.appendChild(div)
+          
+          // Add click handler for image details
+          card.addEventListener('click', (e) => {
+            // Only show details if not clicking on action buttons
+            if (!e.target.closest('.pinterest-action-btn')) {
+              this.showImageDetails(image.id)
+            }
+          })
+          
+          // Add event listeners for action buttons
+          card.querySelector('.pinterest-pin-btn')?.addEventListener('click', (e) => {
+            e.stopPropagation()
+            this.pinImage(image.id, card)
+          })
+          
+          card.querySelector('.edit-btn')?.addEventListener('click', (e) => {
+            e.stopPropagation()
+            this.editImage(image.id)
+          })
+          
+          card.querySelector('.toggle-btn')?.addEventListener('click', (e) => {
+            e.stopPropagation()
+            this.toggleImageStatus(image.id)
+          })
+          
+          card.querySelector('.delete-btn')?.addEventListener('click', (e) => {
+            e.stopPropagation()
+            this.deleteImage(image.id)
+          })
+          
+          card.querySelector('.info-btn')?.addEventListener('click', (e) => {
+            e.stopPropagation()
+            this.showImageDetails(image.id)
+          })
+          
+          gallery.appendChild(card)
         })
       } else {
-        gallery.innerHTML = '<p class="text-gray-500 col-span-full text-center py-8">Chưa có ảnh nào được upload</p>'
+        gallery.innerHTML = '<div class="pinterest-empty-state"><p class="text-gray-500 text-center py-8">Chưa có ảnh nào được upload</p></div>'
       }
       
     } catch (error) {
       console.error('Error loading image gallery:', error)
+    }
+  }
+
+  // Generate Pinterest-style random heights
+  getPinterestHeight(index) {
+    const heights = [180, 220, 260, 200, 240, 300, 160, 280]
+    return heights[index % heights.length]
+  }
+
+  // Pinterest-style pin functionality
+  pinImage(imageId, cardElement) {
+    console.log('Pin image:', imageId)
+    
+    // Toggle pin state
+    cardElement.classList.toggle('selected')
+    const pinBtn = cardElement.querySelector('.pinterest-pin-btn')
+    
+    if (cardElement.classList.contains('selected')) {
+      pinBtn.innerHTML = '<i class="fas fa-check mr-1"></i>Pinned'
+      pinBtn.style.background = '#6366f1'
+      pinBtn.style.color = 'white'
+    } else {
+      pinBtn.innerHTML = '<i class="fas fa-thumbtack mr-1"></i>Pin'
+      pinBtn.style.background = 'rgba(255, 255, 255, 0.9)'
+      pinBtn.style.color = '#374151'
+    }
+  }
+
+  // Pinterest-style image management methods
+  showImageDetails(imageId) {
+    console.log('Show details for image:', imageId)
+    // TODO: Implement image details modal with Pinterest-style design
+    alert(`Xem chi tiết ảnh ID: ${imageId}\n\nTính năng này sẽ hiển thị:\n• Thông tin ảnh chi tiết\n• Lịch sử sử dụng trong khảo sát\n• Thống kê lựa chọn`)
+  }
+
+  editImage(imageId) {
+    console.log('Edit image:', imageId)
+    // TODO: Implement edit modal
+    alert(`Chỉnh sửa ảnh ID: ${imageId}`)
+  }
+
+  async toggleImageStatus(imageId) {
+    try {
+      const response = await fetch(`/api/admin/images/${imageId}/toggle`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' }
+      })
+      
+      if (response.ok) {
+        await this.loadImageGallery() // Refresh gallery
+        console.log('Image status toggled successfully')
+      }
+    } catch (error) {
+      console.error('Error toggling image status:', error)
+    }
+  }
+
+  async deleteImage(imageId) {
+    if (confirm('Bạn có chắc muốn xóa ảnh này?')) {
+      try {
+        const response = await fetch(`/api/admin/images/${imageId}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' }
+        })
+        
+        if (response.ok) {
+          await this.loadImageGallery() // Refresh gallery
+          console.log('Image deleted successfully')
+        }
+      } catch (error) {
+        console.error('Error deleting image:', error)
+      }
     }
   }
 

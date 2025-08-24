@@ -132,12 +132,22 @@
   - ✅ Toggle active/inactive status
   - ✅ Delete ảnh (với safety check cho responses)
   - ✅ **"Delete All Images"** với double confirmation và smart logic
-- ✅ **Real Architectural Image Display**:
-  - ✅ Survey hiển thị ảnh thực tế thay vì placeholder icons
-  - ✅ Admin gallery hiển thị ảnh thực tế với fallback
-  - ✅ Style-specific architectural SVG cho từng phong cách (10 styles)
-  - ✅ Multi-source fallback chain: R2 → API endpoint → SVG
+- ✅ **Enhanced Architectural Image Display**:
+  - ✅ Survey hiển thị distinct architectural representations thay vì generic placeholders
+  - ✅ Admin gallery với professional architectural SVG designs
+  - ✅ **16 Architectural Styles** với unique visual identity:
+    - Modern, Classical, Industrial, Traditional, Contemporary, Minimalist
+    - Victorian, Colonial, Brutalist, Gothic
+    - **NEW**: Art Deco, Tudor, Italian, Mediterranean, Craftsman, Neoclassic
+  - ✅ Enhanced color palettes với secondary colors for depth
+  - ✅ Multi-source fallback chain: R2 Storage → Architectural SVG → Error handling
 - ✅ **Static File Serving**: Proper routing cho /static/* và favicon.ico
+- ✅ **Real Upload Functionality**:
+  - ✅ R2 Storage integration với file validation
+  - ✅ File type validation (images only) và size limits (5MB max)
+  - ✅ Safe filename generation với timestamp prefixes
+  - ✅ Graceful fallback nếu R2 storage unavailable
+  - ✅ Enhanced error handling và user feedback
   - ✅ Bulk actions (activate, deactivate, delete multiple)
   - ✅ Image details modal với usage statistics
   - ✅ Pagination với load more functionality
