@@ -12,7 +12,6 @@ const app = new Hono<{ Bindings: Bindings }>()
 
 // Middleware
 app.use('/api/*', cors())
-app.use('/static/*', serveStatic({ root: './public' }))
 app.use(renderer)
 
 // Utility functions

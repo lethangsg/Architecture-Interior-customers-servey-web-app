@@ -10,8 +10,8 @@
   - Admin dashboard để quản lý ảnh và thống kê
 
 ## URLs
-- **Production**: https://3000-ie76h2s5lx9ep7o3bbird-6532622b.e2b.dev
-- **Admin**: https://3000-ie76h2s5lx9ep7o3bbird-6532622b.e2b.dev/admin
+- **Production**: https://3000-ie76h2s5lx9ep7o3bbird-6532622b.e2b.dev ✅ WORKING
+- **Admin**: https://3000-ie76h2s5lx9ep7o3bbird-6532622b.e2b.dev/admin ✅ WORKING  
 - **GitHub**: [Chưa setup]
 
 ## Data Architecture
@@ -94,14 +94,16 @@
 ## Development Notes
 
 ### Current Features Completed ✅
-- ✅ Mobile-optimized survey interface
-- ✅ Admin dashboard với upload functionality
-- ✅ Database schema và migrations
-- ✅ Style analysis logic
-- ✅ Progress tracking
-- ✅ Result display với confidence score
-- ✅ Local D1 database setup
-- ✅ Sample data seeding
+- ✅ Mobile-optimized survey interface (WORKING)
+- ✅ Admin dashboard với upload functionality (WORKING)
+- ✅ Database schema và migrations (WORKING)
+- ✅ Style analysis logic (WORKING)
+- ✅ Progress tracking (WORKING)
+- ✅ Result display với confidence score (WORKING)
+- ✅ Local D1 database setup (WORKING)
+- ✅ Sample data seeding (WORKING)
+- ✅ Inline JavaScript/CSS để tránh 404 static files
+- ✅ Working APIs cho survey và admin
 
 ### Features Not Yet Implemented ⏳
 - ❌ R2 storage cho ảnh thực (hiện dùng placeholder)
