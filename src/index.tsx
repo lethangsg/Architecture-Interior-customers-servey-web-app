@@ -842,7 +842,7 @@ app.get('/api/admin/duplicates', async (c) => {
       ORDER BY uploaded_at ASC
     `).all()
 
-    // Group images by their original filename pattern
+    // Group images by their original filename pattern AND category
     const groups = {}
     
     images.forEach(image => {
@@ -858,14 +858,17 @@ app.get('/api/admin/duplicates', async (c) => {
       // Normalize to lowercase for comparison
       const normalizedName = baseFilename.toLowerCase()
       
-      if (!groups[normalizedName]) {
-        groups[normalizedName] = {
+      // Include category in grouping key to avoid cross-category false positives
+      const groupKey = `${image.category}_${normalizedName}`
+      
+      if (!groups[groupKey]) {
+        groups[groupKey] = {
           baseFilename: baseFilename,
           images: []
         }
       }
       
-      groups[normalizedName].images.push(image)
+      groups[groupKey].images.push(image)
     })
 
     // Find groups with duplicates (more than 1 image)
@@ -1046,10 +1049,13 @@ app.delete('/api/admin/duplicates', async (c) => {
       baseFilename = baseFilename.replace(/(_\d+|_copy|_duplicate|_\(\d+\))\.(jpg|jpeg|png|webp)$/i, '.$2')
       const normalizedName = baseFilename.toLowerCase()
       
-      if (!groups[normalizedName]) {
-        groups[normalizedName] = []
+      // Include category in grouping key to avoid cross-category false positives
+      const groupKey = `${image.category}_${normalizedName}`
+      
+      if (!groups[groupKey]) {
+        groups[groupKey] = []
       }
-      groups[normalizedName].push(image)
+      groups[groupKey].push(image)
     })
 
     const duplicateGroups = Object.values(groups).filter(group => group.length > 1)
