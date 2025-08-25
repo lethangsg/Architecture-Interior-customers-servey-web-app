@@ -157,6 +157,7 @@ button, .button {
     grid-template-columns: 1fr;
   }
   
+  /* Admin gallery: 2 columns on mobile */
   #image-gallery {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -164,6 +165,7 @@ button, .button {
 
 /* Tablet styles */
 @media (min-width: 641px) and (max-width: 1024px) {
+  /* Admin gallery: 3 columns on tablet */
   #image-gallery {
     grid-template-columns: repeat(3, 1fr);
   }
@@ -171,8 +173,9 @@ button, .button {
 
 /* Desktop styles */
 @media (min-width: 1025px) {
+  /* Admin gallery: 4 columns on desktop as requested */
   #image-gallery {
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(4, 1fr);
   }
   
   /* Hover effects only on desktop */
@@ -378,16 +381,13 @@ input:focus {
   opacity: 0.7;
 }
 
-/* Pinterest-style Masonry Layout */
-.pinterest-gallery {
-  column-count: 2;
-  column-gap: 16px;
+/* Grid Gallery Layout (4x4 columns) */
+#image-gallery {
+  gap: 16px;
   padding: 8px;
 }
 
-.pinterest-card {
-  break-inside: avoid;
-  margin-bottom: 16px;
+.grid-card {
   background: white;
   border-radius: 12px;
   overflow: hidden;
@@ -395,16 +395,17 @@ input:focus {
   transition: all 0.3s ease;
   position: relative;
   cursor: pointer;
+  aspect-ratio: 1;
 }
 
-.pinterest-card:hover {
+.grid-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
 }
 
-.pinterest-card-image {
+.grid-card-image {
   width: 100%;
-  height: auto;
+  height: 100%;
   display: block;
   object-fit: cover;
 }
