@@ -394,6 +394,7 @@ class ArchitectureSurvey {
 
   // Switch admin category
   async switchAdminCategory(category) {
+    console.log('Switching to category:', category, 'from:', this.currentAdminCategory)
     this.currentAdminCategory = category
     
     // Update all tab styles (both main and gallery tabs)
@@ -838,16 +839,32 @@ class ArchitectureSurvey {
 
   async loadImageGallery() {
     try {
+      // Show loading state
+      const gallery = document.getElementById('image-gallery')
+      if (gallery) {
+        gallery.innerHTML = '<div class="col-span-4 text-center py-8"><i class="fas fa-spinner fa-spin text-2xl text-gray-400"></i><p class="text-gray-500 mt-2">Đang tải ảnh...</p></div>'
+      }
+      
       // Include category filter for admin
       const category = this.currentAdminCategory || 'architecture'
-      const response = await fetch(`/api/admin/images?category=${category}`)
+      console.log('Loading gallery for category:', category, 'currentAdminCategory:', this.currentAdminCategory)
+      
+      // Add timestamp to prevent caching
+      const timestamp = Date.now()
+      const response = await fetch(`/api/admin/images?category=${category}&t=${timestamp}`)
       const data = await response.json()
+      
+      console.log('Received images:', data.images?.length, 'for category:', data.category)
       
       if (data.images) {
         this.updateImageGallery(data.images)
       }
     } catch (error) {
       console.error('Error loading image gallery:', error)
+      const gallery = document.getElementById('image-gallery')
+      if (gallery) {
+        gallery.innerHTML = '<div class="col-span-4 text-center py-8 text-red-500"><i class="fas fa-exclamation-triangle text-2xl"></i><p class="mt-2">Lỗi khi tải ảnh</p></div>'
+      }
     }
   }
 
@@ -1159,6 +1176,9 @@ class ArchitectureSurvey {
       this.loadAdminStats()
     })
     
+    const debugCategoryBtn = document.getElementById('debug-category-btn')
+    debugCategoryBtn?.addEventListener('click', () => this.debugCategoryState())
+    
     // Add event delegation for image action buttons
     const imageGallery = document.getElementById('image-gallery')
     imageGallery?.addEventListener('click', (e) => {
@@ -1351,6 +1371,38 @@ class ArchitectureSurvey {
     if (deleteCategoryName) {
       deleteCategoryName.textContent = category === 'architecture' ? 'Kiến Trúc' : 'Nội Thất'
     }
+  }
+  
+  // Debug category state
+  debugCategoryState() {
+    console.log('=== CATEGORY DEBUG INFO ===')
+    console.log('Current admin category:', this.currentAdminCategory)
+    
+    // Check all tabs state
+    const mainArchTab = document.getElementById('tab-architecture')
+    const mainIntTab = document.getElementById('tab-interior')
+    const galleryArchTab = document.getElementById('gallery-tab-architecture')
+    const galleryIntTab = document.getElementById('gallery-tab-interior')
+    
+    console.log('Main tabs:')
+    console.log('  Architecture active:', mainArchTab?.classList.contains('text-blue-600'))
+    console.log('  Interior active:', mainIntTab?.classList.contains('text-blue-600'))
+    
+    console.log('Gallery tabs:')
+    console.log('  Architecture active:', galleryArchTab?.classList.contains('text-indigo-600'))
+    console.log('  Interior active:', galleryIntTab?.classList.contains('text-indigo-600'))
+    
+    // Check labels
+    const categoryLabel = document.getElementById('current-category-label')
+    const imageCount = document.getElementById('category-image-count')
+    console.log('Category label:', categoryLabel?.textContent)
+    console.log('Image count:', imageCount?.textContent)
+    
+    // Force reload gallery
+    console.log('Force reloading gallery...')
+    this.loadImageGallery()
+    
+    alert(`Debug info logged to console!\nCurrent category: ${this.currentAdminCategory}`)
   }
 
   // Delete all images in current category

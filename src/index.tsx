@@ -2388,6 +2388,10 @@ app.get('/secure-admin-panel-2024', (c) => {
                 </div>
                 
                 <div className="flex items-center space-x-3">
+                  <button id="debug-category-btn" className="px-3 py-1 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                    <i className="fas fa-bug mr-1"></i>
+                    Debug
+                  </button>
                   <button id="refresh-category-btn" className="px-3 py-1 text-sm bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
                     <i className="fas fa-sync-alt mr-1"></i>
                     Làm mới
