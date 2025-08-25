@@ -2366,11 +2366,11 @@ app.get('/secure-admin-panel-2024', (c) => {
             {/* Category Tabs */}
             <div className="px-6">
               <nav className="flex space-x-8 border-b border-gray-200">
-                <button id="tab-architecture" className="category-tab py-4 px-1 border-b-2 border-indigo-500 font-medium text-sm text-indigo-600">
+                <button id="gallery-tab-architecture" className="category-tab py-4 px-1 border-b-2 border-indigo-500 font-medium text-sm text-indigo-600">
                   <i className="fas fa-building mr-2"></i>
                   Kiến Trúc
                 </button>
-                <button id="tab-interior" className="category-tab py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                <button id="gallery-tab-interior" className="category-tab py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
                   <i className="fas fa-couch mr-2"></i>
                   Nội Thất
                 </button>

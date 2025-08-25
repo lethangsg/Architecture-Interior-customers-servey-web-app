@@ -377,28 +377,44 @@ class ArchitectureSurvey {
 
   // Initialize category tabs
   initCategoryTabs() {
+    // Main category tabs (for demographics)
     const archTab = document.getElementById('tab-architecture')
     const interiorTab = document.getElementById('tab-interior')
     
     archTab?.addEventListener('click', () => this.switchAdminCategory('architecture'))
     interiorTab?.addEventListener('click', () => this.switchAdminCategory('interior'))
+    
+    // Gallery category tabs
+    const galleryArchTab = document.getElementById('gallery-tab-architecture')
+    const galleryInteriorTab = document.getElementById('gallery-tab-interior')
+    
+    galleryArchTab?.addEventListener('click', () => this.switchAdminCategory('architecture'))
+    galleryInteriorTab?.addEventListener('click', () => this.switchAdminCategory('interior'))
   }
 
   // Switch admin category
   async switchAdminCategory(category) {
     this.currentAdminCategory = category
     
-    // Update tab styles
+    // Update all tab styles (both main and gallery tabs)
     const tabs = document.querySelectorAll('.category-tab')
     tabs.forEach(tab => {
-      tab.classList.remove('border-blue-500', 'text-blue-600')
+      tab.classList.remove('border-blue-500', 'text-blue-600', 'border-indigo-500', 'text-indigo-600')
       tab.classList.add('border-transparent', 'text-gray-500')
     })
     
-    const activeTab = document.getElementById(`tab-${category}`)
-    if (activeTab) {
-      activeTab.classList.remove('border-transparent', 'text-gray-500')
-      activeTab.classList.add('border-blue-500', 'text-blue-600')
+    // Update main tabs (blue style)
+    const activeMainTab = document.getElementById(`tab-${category}`)
+    if (activeMainTab) {
+      activeMainTab.classList.remove('border-transparent', 'text-gray-500')
+      activeMainTab.classList.add('border-blue-500', 'text-blue-600')
+    }
+    
+    // Update gallery tabs (indigo style)
+    const activeGalleryTab = document.getElementById(`gallery-tab-${category}`)
+    if (activeGalleryTab) {
+      activeGalleryTab.classList.remove('border-transparent', 'text-gray-500')
+      activeGalleryTab.classList.add('border-indigo-500', 'text-indigo-600')
     }
     
     // Update upload section
