@@ -830,7 +830,88 @@ app.put('/api/admin/images/:id', async (c) => {
   }
 })
 
-// API để tìm ảnh trùng lặp (admin)
+// API để tìm ảnh trùng lặp dựa trên nội dung thật (admin)
+app.get('/api/admin/content-duplicates', async (c) => {
+  const { env } = c
+  
+  try {
+    // Get all images
+    const { results: images } = await env.DB.prepare(`
+      SELECT id, filename, original_name, style, uploaded_at, category
+      FROM architecture_images 
+      ORDER BY uploaded_at ASC
+    `).all()
+
+    // Group images by content hash
+    const hashGroups = {}
+    const imageDetails = []
+    
+    for (const image of images) {
+      try {
+        // Get image content from R2 or file system
+        const imageResponse = await fetch(`${new URL(c.req.url).origin}/api/images/${image.id}`)
+        if (imageResponse.ok) {
+          const buffer = await imageResponse.arrayBuffer()
+          
+          // Create hash of content using Web Crypto API
+          const hashBuffer = await crypto.subtle.digest('SHA-256', buffer)
+          const hashArray = Array.from(new Uint8Array(hashBuffer))
+          const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+          
+          const details = {
+            ...image,
+            size: buffer.byteLength,
+            hash: hashHex
+          }
+          
+          imageDetails.push(details)
+          
+          if (!hashGroups[hashHex]) {
+            hashGroups[hashHex] = []
+          }
+          hashGroups[hashHex].push(details)
+        }
+      } catch (error) {
+        console.error(`Error processing image ${image.id}:`, error)
+      }
+    }
+
+    // Find groups with exact duplicates
+    const duplicateGroups = Object.values(hashGroups)
+      .filter(group => group.length > 1)
+      .map(group => {
+        const sortedImages = group.sort((a, b) => new Date(a.uploaded_at) - new Date(b.uploaded_at))
+        return {
+          hash: sortedImages[0].hash.substring(0, 16) + '...', // Show partial hash
+          size: sortedImages[0].size,
+          style: sortedImages[0].style,
+          category: sortedImages[0].category,
+          count: sortedImages.length,
+          ids: sortedImages.map(img => img.id),
+          filenames: sortedImages.map(img => img.filename),
+          first_upload: sortedImages[0].uploaded_at,
+          last_upload: sortedImages[sortedImages.length - 1].uploaded_at,
+          keep_id: sortedImages[0].id, // Keep the oldest one
+          remove_ids: sortedImages.slice(1).map(img => img.id) // Remove the rest
+        }
+      })
+
+    const totalDuplicates = duplicateGroups.reduce((sum, group) => sum + (group.count - 1), 0)
+
+    return c.json({
+      duplicates: duplicateGroups,
+      total_groups: duplicateGroups.length,
+      total_duplicates: totalDuplicates,
+      detection_method: 'content_hash'
+    })
+
+  } catch (error) {
+    console.error('Error scanning for content duplicates:', error)
+    return c.json({ error: 'Failed to scan for content duplicates' }, 500)
+  }
+})
+
+// API để tìm ảnh trùng lặp dựa trên filename (admin) 
 app.get('/api/admin/duplicates', async (c) => {
   const { env } = c
   
@@ -1030,7 +1111,59 @@ app.delete('/api/admin/images/all', async (c) => {
   }
 })
 
-// API để xóa ảnh trùng lặp (admin)
+// API để xóa ảnh trùng lặp dựa trên nội dung (admin)
+app.delete('/api/admin/content-duplicates', async (c) => {
+  const { env } = c
+  
+  try {
+    // Get content duplicates first using the same logic as scan
+    const scanResponse = await fetch(`${c.req.url.split('/api')[0]}/api/admin/content-duplicates`)
+    const scanData = await scanResponse.json()
+    
+    if (!scanData.duplicates || scanData.duplicates.length === 0) {
+      return c.json({ success: true, deleted_count: 0, groups_cleaned: 0, message: 'Không có ảnh trùng lặp nội dung nào' })
+    }
+
+    let deletedCount = 0
+    let groupsCleaned = 0
+
+    // Delete duplicates (keep oldest in each group)
+    for (const group of scanData.duplicates) {
+      for (const imageId of group.remove_ids) {
+        try {
+          // Delete from responses table first (foreign key constraint)
+          await env.DB.prepare(`
+            DELETE FROM user_responses 
+            WHERE chosen_image_id = ? OR image_left_id = ? OR image_right_id = ?
+          `).bind(imageId, imageId, imageId).run()
+          
+          // Delete from images table
+          await env.DB.prepare(`
+            DELETE FROM architecture_images WHERE id = ?
+          `).bind(imageId).run()
+          
+          deletedCount++
+        } catch (error) {
+          console.error(`Error deleting duplicate image ${imageId}:`, error)
+        }
+      }
+      groupsCleaned++
+    }
+
+    return c.json({
+      success: true,
+      deleted_count: deletedCount,
+      groups_cleaned: groupsCleaned,
+      message: `Đã xóa ${deletedCount} ảnh trùng lặp nội dung từ ${groupsCleaned} nhóm`
+    })
+
+  } catch (error) {
+    console.error('Error cleaning content duplicates:', error)
+    return c.json({ error: 'Failed to clean content duplicates' }, 500)
+  }
+})
+
+// API để xóa ảnh trùng lặp dựa trên filename (admin)
 app.delete('/api/admin/duplicates', async (c) => {
   const { env } = c
   
@@ -2320,13 +2453,21 @@ app.get('/secure-admin-panel-2024', (c) => {
                 Quản Lý Ảnh Trùng Lặp
               </h2>
               <div className="flex gap-2">
+                <button id="scan-content-duplicates-btn" className="text-sm bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors">
+                  <i className="fas fa-fingerprint mr-1"></i>
+                  Quét Nội Dung
+                </button>
                 <button id="scan-duplicates-btn" className="text-sm bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
                   <i className="fas fa-search mr-1"></i>
-                  Quét Trùng Lặp
+                  Quét Tên File
+                </button>
+                <button id="clean-content-duplicates-btn" className="text-sm bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg transition-colors">
+                  <i className="fas fa-broom mr-1"></i>
+                  Dọn Nội Dung
                 </button>
                 <button id="clean-duplicates-btn" className="text-sm bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors">
                   <i className="fas fa-trash mr-1"></i>
-                  Dọn Dẹp Tất Cả
+                  Dọn Tên File
                 </button>
               </div>
             </div>

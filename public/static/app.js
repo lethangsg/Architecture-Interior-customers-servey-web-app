@@ -487,11 +487,19 @@ class ArchitectureSurvey {
 
   // Initialize duplicate management
   initDuplicateManagement() {
+    // Filename-based duplicate detection
     const scanBtn = document.getElementById('scan-duplicates-btn')
     const cleanBtn = document.getElementById('clean-duplicates-btn')
     
     scanBtn?.addEventListener('click', () => this.scanDuplicates())
     cleanBtn?.addEventListener('click', () => this.cleanDuplicates())
+    
+    // Content-based duplicate detection
+    const scanContentBtn = document.getElementById('scan-content-duplicates-btn')
+    const cleanContentBtn = document.getElementById('clean-content-duplicates-btn')
+    
+    scanContentBtn?.addEventListener('click', () => this.scanContentDuplicates())
+    cleanContentBtn?.addEventListener('click', () => this.cleanContentDuplicates())
   }
 
   // Initialize image filter functionality
@@ -1676,6 +1684,127 @@ class ArchitectureSurvey {
       nextBtn.classList.add('opacity-50')
     } else {
       nextBtn.classList.remove('opacity-50')
+    }
+  }
+
+  // Scan for content-based duplicates
+  async scanContentDuplicates() {
+    const scanBtn = document.getElementById('scan-content-duplicates-btn')
+    const container = document.getElementById('duplicates-container')
+    const summary = document.getElementById('duplicates-summary')
+    
+    try {
+      scanBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Đang quét nội dung...'
+      scanBtn.disabled = true
+      
+      const response = await fetch('/api/admin/content-duplicates')
+      const data = await response.json()
+      
+      if (data.duplicates && data.duplicates.length > 0) {
+        // Show summary
+        document.getElementById('duplicate-groups-count').textContent = data.total_groups
+        document.getElementById('total-duplicates-count').textContent = data.total_duplicates
+        summary.classList.remove('hidden')
+        
+        // Display duplicates
+        container.innerHTML = data.duplicates.map(group => `
+          <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+            <div class="flex items-center justify-between mb-3">
+              <div>
+                <h3 class="font-semibold text-purple-800">Ảnh Giống Hệt Nhau (Nội Dung)</h3>
+                <p class="text-sm text-purple-600">Hash: ${group.hash} • Kích thước: ${(group.size / 1024).toFixed(1)} KB</p>
+                <p class="text-sm text-purple-600">Style: ${group.style} • ${group.count} bản copy</p>
+              </div>
+              <span class="bg-purple-100 text-purple-800 px-2 py-1 rounded text-sm font-medium">
+                ${group.count - 1} thừa
+              </span>
+            </div>
+            <div class="text-xs text-gray-600">
+              <p>Ảnh giữ lại: ${group.filenames[0]}</p>
+              <p>Ảnh sẽ xóa: ${group.filenames.slice(1).join(', ')}</p>
+              <p>Từ: ${group.first_upload} đến: ${group.last_upload}</p>
+            </div>
+          </div>
+        `).join('')
+      } else {
+        container.innerHTML = `
+          <div class="text-center text-green-600 py-8">
+            <i class="fas fa-check-circle text-4xl mb-4 block"></i>
+            <p class="font-medium">Không tìm thấy ảnh trùng lặp nội dung!</p>
+          </div>
+        `
+        summary.classList.add('hidden')
+      }
+      
+    } catch (error) {
+      console.error('Error scanning content duplicates:', error)
+      container.innerHTML = `
+        <div class="text-center text-red-600 py-8">
+          <i class="fas fa-exclamation-triangle text-4xl mb-4 block"></i>
+          <p>Lỗi khi quét ảnh trùng lặp nội dung</p>
+        </div>
+      `
+    } finally {
+      scanBtn.innerHTML = '<i class="fas fa-fingerprint mr-1"></i> Quét Nội Dung'
+      scanBtn.disabled = false
+    }
+  }
+
+  // Clean content-based duplicates
+  async cleanContentDuplicates() {
+    const confirmMessage = 'BẠN CÓ CHẮC CHẮN MUỐN XÓA TẤT CẢ ẢNH TRÙNG LẶP NỘI DUNG?\n\n' +
+                          '⚠️ CẢNH BÁO: Hành động này sẽ:\n' +
+                          '• Xóa tất cả ảnh có nội dung giống hệt nhau\n' +
+                          '• Giữ lại ảnh cũ nhất trong mỗi nhóm\n' +
+                          '• KHÔNG THỂ HOÀN TÁC!'
+    
+    const confirmation = confirm(confirmMessage)
+    
+    if (!confirmation) {
+      return
+    }
+
+    const cleanBtn = document.getElementById('clean-content-duplicates-btn')
+    const container = document.getElementById('duplicates-container')
+    
+    try {
+      cleanBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Đang dọn dẹp...'
+      cleanBtn.disabled = true
+      
+      const response = await fetch('/api/admin/content-duplicates', {
+        method: 'DELETE'
+      })
+      
+      const data = await response.json()
+      
+      if (data.success) {
+        container.innerHTML = `
+          <div class="text-center text-green-600 py-8">
+            <i class="fas fa-check-circle text-4xl mb-4 block"></i>
+            <p class="font-medium">${data.message}</p>
+            <p class="text-sm mt-2">Đã xóa ${data.deleted_count} ảnh từ ${data.groups_cleaned} nhóm</p>
+          </div>
+        `
+        document.getElementById('duplicates-summary').classList.add('hidden')
+        
+        // Refresh image gallery and stats
+        await this.loadAdminStats()
+        await this.loadImageGallery()
+      } else {
+        throw new Error(data.error || 'Unknown error')
+      }
+      
+    } catch (error) {
+      console.error('Error cleaning content duplicates:', error)
+      container.innerHTML = `
+        <div class="text-center text-red-600 py-8">
+          <i class="fas fa-exclamation-triangle text-4xl mb-4 block"></i>
+          <p>Lỗi khi dọn dẹp ảnh trùng lặp nội dung</p>
+        </div>
+      `
+    } finally {
+      cleanBtn.innerHTML = '<i class="fas fa-broom mr-1"></i> Dọn Nội Dung'
+      cleanBtn.disabled = false
     }
   }
 }
