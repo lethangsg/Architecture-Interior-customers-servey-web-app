@@ -26,7 +26,9 @@
     "git:log": "git log --oneline"
   },
   "dependencies": {
-    "hono": "^4.9.4"
+    "form-data": "^4.0.4",
+    "hono": "^4.9.4",
+    "node-fetch": "^3.3.2"
   },
   "devDependencies": {
     "@hono/vite-build": "^1.2.0",
