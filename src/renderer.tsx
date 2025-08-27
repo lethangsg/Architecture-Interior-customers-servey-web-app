@@ -6,7 +6,7 @@ export const renderer = jsxRenderer(({ children }) => {
       <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Khảo Sát Phong Cách Kiến Trúc</title>
+        <title>KHẢO SÁT PHONG CÁCH KIẾN TRÚC VÀ NỘI THẤT</title>
         
         {/* TailwindCSS */}
         <script src="https://cdn.tailwindcss.com"></script>

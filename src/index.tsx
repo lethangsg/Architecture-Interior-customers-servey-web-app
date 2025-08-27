@@ -1906,7 +1906,7 @@ app.get('/', (c) => {
           <div className="max-w-md mx-auto flex items-center justify-between">
             <h1 className="text-xl font-bold text-gray-800">
               <i className="fas fa-building mr-2 text-indigo-600"></i>
-              Khảo Sát Phong Cách Kiến Trúc
+              KHẢO SÁT PHONG CÁCH KIẾN TRÚC VÀ NỘI THẤT
             </h1>
             <div className="text-sm text-gray-500">
               <i className="fas fa-users"></i>
@@ -1924,7 +1924,7 @@ app.get('/', (c) => {
                 <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto">
                   <i className="fas fa-eye text-indigo-600 text-2xl"></i>
                 </div>
-                <h2 className="text-2xl font-bold text-gray-800">Khám Phá Phong Cách Của Bạn</h2>
+                <h2 className="text-2xl font-bold text-gray-800">Hãy khám phá phong cách của bạn</h2>
                 <p className="text-gray-600 leading-relaxed">
                   Chọn loại khảo sát để khám phá phong cách yêu thích của bạn. 
                   Mỗi khảo sát gồm 10 lượt chọn để phân tích sở thích của bạn.
@@ -2737,9 +2737,401 @@ app.get('/secure-admin-panel-2024', (c) => {
   )
 })
 
-// Admin panel route - redirect to secure admin panel with auth key
+// Admin panel route - direct access to admin interface
 app.get('/admin', (c) => {
-  return c.redirect('/secure-admin-panel-2024?key=arch-survey-admin-2024')
+  // Direct access to admin panel - no auth required for development
+  return c.render(
+    <div className="min-h-screen bg-gray-50">
+      {/* Admin Header */}
+      <header className="bg-white shadow-sm border-b border-gray-200 px-4 py-4">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <h1 className="text-2xl font-bold text-gray-800">
+              <i className="fas fa-cogs mr-2 text-indigo-600"></i>
+              Admin Panel
+            </h1>
+            <span className="px-3 py-1 bg-indigo-100 text-indigo-800 text-sm rounded-full">
+              Gallery Management
+            </span>
+          </div>
+          <div className="flex items-center space-x-4">
+            <a href="/" className="text-gray-600 hover:text-indigo-600 transition-colors">
+              <i className="fas fa-home mr-1"></i>
+              Về trang chủ
+            </a>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto p-6">
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center">
+              <div className="p-3 rounded-full bg-blue-100 text-blue-600">
+                <i className="fas fa-users text-2xl"></i>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Khảo sát hoàn thành</p>
+                <p id="total-sessions" className="text-2xl font-bold text-gray-900">0</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center">
+              <div className="p-3 rounded-full bg-green-100 text-green-600">
+                <i className="fas fa-images text-2xl"></i>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Tổng số ảnh hoạt động</p>
+                <p id="total-images" className="text-2xl font-bold text-gray-900">0</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center">
+              <div className="p-3 rounded-full bg-purple-100 text-purple-600">
+                <i className="fas fa-star text-2xl"></i>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Phong cách phổ biến</p>
+                <p id="popular-style" className="text-2xl font-bold text-gray-900 capitalize">-</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Upload Section */}
+        <div className="bg-white rounded-lg shadow mb-8 p-6">
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">
+            <i className="fas fa-upload mr-2 text-indigo-600"></i>
+            Upload Ảnh Mới
+          </h2>
+          
+          <form id="upload-form" className="space-y-4">
+            <div className="flex items-center justify-center w-full">
+              <label htmlFor="image-input" className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
+                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                  <i className="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-2"></i>
+                  <p className="mb-2 text-sm text-gray-500"><span className="font-semibold">Nhấp để upload</span> hoặc kéo thả</p>
+                  <p className="text-xs text-gray-500">PNG, JPG, WEBP (MAX. 10MB)</p>
+                </div>
+                <input id="image-input" type="file" className="hidden" multiple accept="image/*" />
+              </label>
+            </div>
+            
+            <div className="flex space-x-4">
+              <button type="submit" className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+                <i className="fas fa-upload mr-2"></i>
+                Upload Ảnh
+              </button>
+              <button type="button" id="test-upload-btn" className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                <i className="fas fa-vial mr-2"></i>
+                Test Upload
+              </button>
+            </div>
+          </form>
+        </div>
+
+        {/* Category Tabs */}
+        <div className="bg-white rounded-lg shadow mb-8">
+          <div className="border-b border-gray-200">
+            <div className="px-6 py-4">
+              <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                <i className="fas fa-images mr-2 text-indigo-600"></i>
+                Quản Lý Thư Viện Ảnh
+              </h2>
+              
+              {/* Main Category Tabs */}
+              <div className="flex space-x-1 mb-4">
+                <button id="tab-architecture" className="px-4 py-2 text-sm font-medium text-blue-600 bg-white border-b-2 border-blue-500 hover:text-blue-800 transition-colors">
+                  <i className="fas fa-building mr-1"></i>
+                  Kiến Trúc
+                </button>
+                <button id="tab-interior" className="px-4 py-2 text-sm font-medium text-gray-500 bg-white border-b-2 border-transparent hover:text-gray-700 hover:border-gray-300 transition-colors">
+                  <i className="fas fa-couch mr-1"></i>
+                  Nội Thất
+                </button>
+              </div>
+
+              {/* Gallery Sub-tabs */}
+              <div className="flex space-x-1">
+                <button id="gallery-tab-architecture" className="px-3 py-1 text-xs font-medium text-indigo-600 bg-white border-b-2 border-indigo-500 hover:text-indigo-800 transition-colors">
+                  Gallery Kiến Trúc
+                </button>
+                <button id="gallery-tab-interior" className="px-3 py-1 text-xs font-medium text-gray-500 bg-white border-b-2 border-transparent hover:text-gray-700 hover:border-gray-300 transition-colors">
+                  Gallery Nội Thất
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Search and Filter */}
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1">
+                <input id="search-input" type="text" placeholder="Tìm kiếm theo tên file..." className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+              </div>
+              <div className="flex gap-2">
+                <select id="style-filter" className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                  <option value="all">Tất cả phong cách</option>
+                  {/* Architecture styles */}
+                  <optgroup label="Kiến trúc">
+                    <option value="art deco ">Art Deco</option>
+                    <option value="art nouveau ">Art Nouveau</option>
+                    <option value="bauhaus ">Bauhaus</option>
+                    <option value="brutalist ">Brutalist</option>
+                    <option value="colonial ">Colonial</option>
+                    <option value="craftsman ">Craftsman</option>
+                    <option value="georgian colonial ">Georgian Colonial</option>
+                    <option value="gothic">Gothic Revival</option>
+                    <option value="italian ">Italian</option>
+                    <option value="mediterranean ">Mediterranean</option>
+                    <option value="mid-century-modern ">Mid-Century Modern</option>
+                    <option value="minimalist ">Minimalist</option>
+                    <option value="modern ">Modern</option>
+                    <option value="neoclassic ">Neoclassic</option>
+                    <option value="prairie ">Prairie</option>
+                    <option value="santorini ">Santorini</option>
+                    <option value="shingle ">Shingle</option>
+                    <option value="spanish colonial ">Spanish Colonial</option>
+                    <option value="tudor ">Tudor</option>
+                    <option value="victorian ">Victorian</option>
+                  </optgroup>
+                  {/* Interior styles */}
+                  <optgroup label="Nội thất">
+                    <option value="art-nouveau ">Art-Nouveau</option>
+                    <option value="art deco ">Art Deco</option>
+                    <option value="boho ">Boho</option>
+                    <option value="classic ">Classic</option>
+                    <option value="contemporary ">Contemporary</option>
+                    <option value="eclectic ">Eclectic</option>
+                    <option value="industrial ">Industrial</option>
+                    <option value="indochine ">Indochine</option>
+                    <option value="japandi ">Japandi</option>
+                    <option value="mediterranean ">Mediterranean</option>
+                    <option value="minimalism ">Minimalism</option>
+                    <option value="modern ">Modern</option>
+                    <option value="modern-farmhouse ">Modern Farmhouse</option>
+                    <option value="neoclassic ">Neoclassic</option>
+                    <option value="retro ">Retro</option>
+                    <option value="rustic ">Rustic</option>
+                    <option value="scandinavian ">Scandinavian</option>
+                    <option value="traditional ">Traditional</option>
+                    <option value="transitional ">Transitional</option>
+                  </optgroup>
+                </select>
+                <select id="status-filter" className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                  <option value="all">Tất cả trạng thái</option>
+                  <option value="active">Hoạt động</option>
+                  <option value="inactive">Đã tắt</option>
+                </select>
+                <button id="search-btn" className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+                  <i className="fas fa-search"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Duplicate Management */}
+          <div className="p-6 border-b border-gray-200 bg-amber-50">
+            <h3 className="text-lg font-semibold text-amber-800 mb-4">
+              <i className="fas fa-copy mr-2"></i>
+              Quản Lý Ảnh Trùng Lặp
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <button id="scan-filename-duplicates" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                <i className="fas fa-search mr-2"></i>
+                Quét Tên File
+              </button>
+              <button id="clean-filename-duplicates" className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm">
+                <i className="fas fa-trash mr-2"></i>
+                Dọn Tên File
+              </button>
+              <button id="scan-content-duplicates" className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm">
+                <i className="fas fa-images mr-2"></i>
+                Quét Nội Dung
+              </button>
+              <button id="clean-content-duplicates" className="px-4 py-2 bg-red-700 text-white rounded-lg hover:bg-red-800 transition-colors text-sm">
+                <i className="fas fa-fire mr-2"></i>
+                Dọn Nội Dung
+              </button>
+            </div>
+          </div>
+
+          {/* Bulk Actions */}
+          <div id="bulk-actions" className="hidden p-6 border-b border-gray-200 bg-blue-50">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <span id="selected-count" className="text-sm font-medium text-blue-800">0 ảnh được chọn</span>
+                <div className="flex space-x-2">
+                  <button id="bulk-activate" className="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 transition-colors">
+                    <i className="fas fa-eye mr-1"></i>
+                    Kích hoạt
+                  </button>
+                  <button id="bulk-deactivate" className="px-3 py-1 bg-yellow-600 text-white rounded text-xs hover:bg-yellow-700 transition-colors">
+                    <i className="fas fa-eye-slash mr-1"></i>
+                    Tắt
+                  </button>
+                  <button id="bulk-delete" className="px-3 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700 transition-colors">
+                    <i className="fas fa-trash mr-1"></i>
+                    Xóa
+                  </button>
+                </div>
+              </div>
+              <div className="flex space-x-2">
+                <button id="clear-selection" className="px-3 py-1 bg-gray-500 text-white rounded text-xs hover:bg-gray-600 transition-colors">
+                  Bỏ chọn tất cả
+                </button>
+                <button id="delete-all" className="px-3 py-1 bg-red-800 text-white rounded text-xs hover:bg-red-900 transition-colors">
+                  <i className="fas fa-bomb mr-1"></i>
+                  XÓA TẤT CẢ
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Image Gallery */}
+          <div className="p-6">
+            <div id="image-gallery" className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {/* Images will be loaded here by JavaScript */}
+            </div>
+            
+            {/* Empty State */}
+            <div id="empty-state" className="hidden text-center py-12">
+              <i className="fas fa-images text-4xl text-gray-400 mb-4"></i>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Chưa có ảnh nào</h3>
+              <p className="text-gray-500">Upload ảnh đầu tiên để bắt đầu</p>
+            </div>
+            
+            {/* Load More */}
+            <div id="load-more-container" className="hidden text-center mt-8">
+              <button id="load-more-btn" className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+                <i className="fas fa-chevron-down mr-2"></i>
+                Xem thêm
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      {/* Edit Modal */}
+      <div id="edit-modal" className="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Chỉnh sửa ảnh</h3>
+              <button id="close-modal" className="text-gray-400 hover:text-gray-600">
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+            
+            <form id="edit-form" className="space-y-4">
+              <input type="hidden" id="edit-image-id" />
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tên file</label>
+                <input type="text" id="edit-filename" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500" />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Phong cách</label>
+                <select id="edit-style" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                  {/* Architecture styles */}
+                  <optgroup label="Kiến trúc">
+                    <option value="art deco ">Art Deco</option>
+                    <option value="art nouveau ">Art Nouveau</option>
+                    <option value="bauhaus ">Bauhaus</option>
+                    <option value="brutalist ">Brutalist</option>
+                    <option value="colonial ">Colonial</option>
+                    <option value="craftsman ">Craftsman</option>
+                    <option value="georgian colonial ">Georgian Colonial</option>
+                    <option value="gothic">Gothic Revival</option>
+                    <option value="italian ">Italian</option>
+                    <option value="mediterranean ">Mediterranean</option>
+                    <option value="mid-century-modern ">Mid-Century Modern</option>
+                    <option value="minimalist ">Minimalist</option>
+                    <option value="modern ">Modern</option>
+                    <option value="neoclassic ">Neoclassic</option>
+                    <option value="prairie ">Prairie</option>
+                    <option value="santorini ">Santorini</option>
+                    <option value="shingle ">Shingle</option>
+                    <option value="spanish colonial ">Spanish Colonial</option>
+                    <option value="tudor ">Tudor</option>
+                    <option value="victorian ">Victorian</option>
+                  </optgroup>
+                  {/* Interior styles */}
+                  <optgroup label="Nội thất">
+                    <option value="art-nouveau ">Art-Nouveau</option>
+                    <option value="art deco ">Art Deco</option>
+                    <option value="boho ">Boho</option>
+                    <option value="classic ">Classic</option>
+                    <option value="contemporary ">Contemporary</option>
+                    <option value="eclectic ">Eclectic</option>
+                    <option value="industrial ">Industrial</option>
+                    <option value="indochine ">Indochine</option>
+                    <option value="japandi ">Japandi</option>
+                    <option value="mediterranean ">Mediterranean</option>
+                    <option value="minimalism ">Minimalism</option>
+                    <option value="modern ">Modern</option>
+                    <option value="modern-farmhouse ">Modern Farmhouse</option>
+                    <option value="neoclassic ">Neoclassic</option>
+                    <option value="retro ">Retro</option>
+                    <option value="rustic ">Rustic</option>
+                    <option value="scandinavian ">Scandinavian</option>
+                    <option value="traditional ">Traditional</option>
+                    <option value="transitional ">Transitional</option>
+                  </optgroup>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tên gốc</label>
+                <input type="text" id="edit-original-name" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500" />
+              </div>
+              
+              <div className="flex items-center">
+                <input type="checkbox" id="edit-is-active" className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                <label htmlFor="edit-is-active" className="ml-2 text-sm text-gray-700">Hoạt động</label>
+              </div>
+              
+              <div className="flex space-x-3 pt-4">
+                <button type="submit" className="flex-1 bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors">
+                  Lưu thay đổi
+                </button>
+                <button type="button" id="cancel-edit" className="flex-1 bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors">
+                  Hủy
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      {/* Details Modal */}
+      <div id="details-modal" className="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Chi tiết ảnh</h3>
+              <button id="close-details-modal" className="text-gray-400 hover:text-gray-600">
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+            
+            <div id="image-details-content">
+              {/* Content will be loaded by JavaScript */}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* JavaScript */}
+      <script src="/static/app.js"></script>
+    </div>
+  )
 })
 
 export default app
